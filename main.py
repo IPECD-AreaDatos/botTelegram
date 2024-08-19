@@ -14,7 +14,6 @@ def send_welcome(message):
         telebot.types.KeyboardButton(text="IPICORR"),
         telebot.types.KeyboardButton(text="IPI"),
     )
-    # Enviar el menú al usuario
     bot.send_message(message.chat.id, "¿En qué puedo ayudarte?", reply_markup=board)
 
 # Configurar los manejadores adicionales
