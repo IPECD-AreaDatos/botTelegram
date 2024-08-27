@@ -12,13 +12,12 @@ def setup_handlers(bot):
             board.add(
                 telebot.types.KeyboardButton(text="¿Que es?"),
                 telebot.types.KeyboardButton(text="Ultimo valor"),
-                telebot.types.KeyboardButton(text="¿Que variaciones tiene?"),
                 telebot.types.KeyboardButton(text="Variaciones"),
                 telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
             )
             bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPICORR?", reply_markup=board)
             bot.register_next_step_handler(message, partial(resp_ipicorr, bot=bot))
-        elif message.text == "IPI":
+        elif message.text == "IPI Nacion":
             board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
             board.add(
                 telebot.types.KeyboardButton(text="¿Que es?"),

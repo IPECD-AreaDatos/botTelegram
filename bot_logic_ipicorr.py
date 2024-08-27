@@ -1,4 +1,5 @@
 import sqlalchemy
+import locale
 import pandas as pd
 import pymysql
 import telebot
@@ -26,12 +27,23 @@ def resp_ipicorr(message, bot):
     user_input = message.text.lower()
 
     if user_input == "¿que es?":
-        bot.send_message(message.chat.id, "El Instituto Provincial de Estadistica y Ciencia de Datos en conjunto con el Ministerio de Industria, trabaja en el Índice de Producción Industrial manufacturero de la provincia de Corrientes (IPICorr). El mismo reúne información de las principales empresas industriales que producen y comercializan productos. Su objetivo es medir la evolución mensual de la actividad económica de la industria en la provincia.")
+        bot.send_message(message.chat.id, "El Instituto Provincial de Estadistica y Ciencia de Datos en conjunto con el Ministerio de Industria, trabaja en el Índice de Producción Industrial manufacturero de la provincia de Corrientes (IPICorr). El mismo reúne información de las principales empresas industriales que producen y comercializan productos. Su objetivo es medir la evolución mensual de la actividad económica de la industria en la provincia.\n"
+            "Las variaciones que tiene IPICORR son las siguientes:\n"
+            "* Interanual IPICORR\n"
+            "* Interanual Alimentos\n"
+            "* Interanual Textil\n"
+            "* Interanual Maderas\n"
+            "* Interanual Minerales No Metalicos\n"
+            "* Interanual Metales")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))  # Mantiene al usuario en la misma función
         
     elif user_input == "ultimo valor":
         last_value = df['Var_Interanual_IPICORR'].iloc[-1]
-        bot.send_message(message.chat.id, f"El ultimo valor de IPICORR es: {last_value :.2f}% correspondiente a {df['Fecha'].iloc[-1]}")
+        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+
+        # Convertir la fecha a texto
+        fecha_texto = df['Fecha'].iloc[-1].strftime('%B %Y')
+        bot.send_message(message.chat.id, f"El ultimo valor de IPICORR es: {last_value :.2f}% correspondiente a {fecha_texto}")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
     elif user_input == "variaciones":
@@ -47,23 +59,11 @@ def resp_ipicorr(message, bot):
         )    
         bot.send_message(message.chat.id, "¿Que Variacion te interesa consultar?", reply_markup=board)
         bot.register_next_step_handler(message, lambda m: resp_ipicorr_variaciones(m, bot, df))
-
-    elif user_input == "¿que variaciones tiene?":
-        bot.send_message(message.chat.id, 
-            "Las variaciones que tiene IPICORR son las siguientes:\n"
-            "* Interanual IPICORR\n"
-            "* Interanual Alimentos\n"
-            "* Interanual Textil\n"
-            "* Interanual Maderas\n"
-            "* Interanual Minerales No Metalicos\n"
-            "* Interanual Metales")
-
         
     elif user_input == "quiero saber de otro tema":
         bot.send_message(message.chat.id, "Gracias por consultar sobre IPICORR. ¿En qué más puedo ayudarte?")
         send_menu_principal(bot, message.chat.id)  # Usar la función para enviar el menú principal
 
-        
     else:
         bot.send_message(message.chat.id, "Opción no válida, por favor elige de nuevo.")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot)) 
