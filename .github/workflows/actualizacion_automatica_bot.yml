@@ -68,19 +68,16 @@ jobs:
           set -e
           
           # Buscar el proceso bot_telegram excluyendo el comando grep
-          PID=\$(ps aux | grep '[b]ot_telegram' | awk '{print \$2}')
+          RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
           
-          if [ -z \"\$PID\" ]; then
-            echo 'bot_telegram no está en ejecución, iniciando...'
-          
-            nohup python3 -u $DEPLOY_DIR/main.py --name=\"bot_telegram\" > /dev/null 2>&1 &
-          
-            echo 'Proceso bot_telegram iniciado.'
-          
-          else
-            echo 'bot_telegram está en ejecución con PID: \$PID. Reiniciando...'
-            kill -9 \$PID
-            nohup python3 -u $DEPLOY_DIR/main.py --name=\"bot_telegram\" > /dev/null 2>&1 &
+          if [ -n \"\$RESULT\" ]; then
+            echo 'bot_telegram está en ejecución. Reiniciando...'
+            # Reiniciar el proceso
+            pkill -f bot_telegram
+            nohup python3 -u $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
             echo 'Proceso bot_telegram reiniciado.'
+          else
+            echo 'bot_telegram no está en ejecución, iniciando...'
+            nohup python3 -u $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
+            echo 'Proceso bot_telegram iniciado.'
           fi"
-
