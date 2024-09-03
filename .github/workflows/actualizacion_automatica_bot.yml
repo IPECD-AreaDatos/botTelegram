@@ -1,6 +1,3 @@
-# Archivo destinado a realizar la carga de los cambios del repositorio en el servidor EC2 que usamos en el área.
-# Las variables secretas están configuradas en Settings.
-
 name: Actualizacion automatico de los cambios del bot de Telegram
 
 on:
@@ -16,13 +13,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    # Objetivo: añadir la clave SSH al agente que se conectará al servidor.
+    # Añadir la clave SSH al agente que se conectará al servidor.
     - name: Add SSH key
       uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.AWS_PEM }}
 
-    # Objetivo: Verificar que la conexión se realizó exitosamente.
+    # Verificar que la conexión SSH se realizó exitosamente.
     - name: Verify SSH connection
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
@@ -30,54 +27,45 @@ jobs:
       run: |
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "echo 'Conexión exitosa a EC2'"
     
-    # Objetivo: Clonar o actualizar el repositorio en el servidor EC2
+    # Clonar o actualizar el repositorio en el servidor EC2
     - name: Actualizacion del repositorio
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
-        REPO_URL: ${{ secrets.HTTP_GIT }}  # URL del repositorio - es la dirección SSH o HTTP que usamos para el git clone
-        DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}  # Directorio de despliegue en EC2 -destino_git
+        REPO_URL: ${{ secrets.HTTP_GIT }}
+        DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
-
-        #Conectamos al servidor
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
           set -e
-
-          #Revisamos la existencia de la carpeta
-          if [ ! -d '$DEPLOY_DIR' ]; then #No existe: clonar repo
+          if [ ! -d '$DEPLOY_DIR' ]; then
             sudo mkdir -p '$DEPLOY_DIR'
             cd '$DEPLOY_DIR'
             sudo git clone '$REPO_URL' .
             sudo chmod 777 -R '$DEPLOY_DIR'
-          else #Si existe: actualizar el repo
+          else
             cd '$DEPLOY_DIR'
             sudo git reset --hard HEAD
             sudo git pull origin main
             sudo chmod 777 -R '$DEPLOY_DIR'
           fi"
 
-    # Objetivo: verificar ejecucion en segundo plano por cada cambio realizado
+    # Verificar y reiniciar el bot si está en ejecución
     - name: verificar ejecucion en segundo plano del bot
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
-        DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}  # Directorio donde está el bot
-
+        DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
-          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
           set -e
-          
-          # Buscar el proceso bot_telegram excluyendo el comando grep
           RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
-          
           if [ -n \"\$RESULT\" ]; then
             echo 'bot_telegram está en ejecución. Reiniciando...'
-            # Reiniciar el proceso
             pkill -f bot_telegram
-            nohup python3 -u $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
+            nohup python3 -u $DEPLOY_DIR/main.py --name=bot_telegram > /dev/null 2>&1 &
             echo 'Proceso bot_telegram reiniciado.'
           else
             echo 'bot_telegram no está en ejecución, iniciando...'
-            nohup python3 -u $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
+            nohup python3 -u $DEPLOY_DIR/main.py --name=bot_telegram > /dev/null 2>&1 &
             echo 'Proceso bot_telegram iniciado.'
           fi"
