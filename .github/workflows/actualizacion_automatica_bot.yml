@@ -56,4 +56,9 @@ jobs:
         EC2_USER: ${{ secrets.AWS_USER }}
         DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
-        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP 
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP ""
+          set -e
+          RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
+
+          cat $RESULT
+          "
