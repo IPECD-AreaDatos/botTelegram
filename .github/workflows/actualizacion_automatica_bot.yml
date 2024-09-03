@@ -59,6 +59,12 @@ jobs:
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
           set -e
           RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
-
-          echo $RESULT
-          "
+          
+          if [ -z \"\$RESULT\" ]; then
+            echo 'Bot no está en ejecución. Reiniciando...'
+            cd \$DEPLOY_DIR
+            nohup ./start_bot.sh &
+          else
+            echo 'Bot está en ejecución.'
+          fi
+        "
