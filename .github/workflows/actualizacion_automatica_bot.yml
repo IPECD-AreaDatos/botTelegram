@@ -1,0 +1,31 @@
+# Archivo destinado a realizar la carga de los cambios del repositorio en el servidor EC2 que usamos en el área.
+# Las variables secretas están configuradas en Settings.
+
+name: Actualizacion automatico de los cambios del bot de Telegram
+
+on:
+  push:
+    branches:
+      - main  # Ejecutar este workflow en cada push a la rama principal
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    # Objetivo: añadir la clave SSH al agente que se conectará al servidor.
+    - name: Add SSH key
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.AWS_PEM }}
+
+    # Objetivo: Verificar que la conexión se realizó exitosamente.
+    - name: Verify SSH connection
+      env:
+        EC2_IP: ${{ secrets.AWS_HOST }}
+        EC2_USER: ${{ secrets.AWS_USER }}
+      run: |
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "echo 'Conexión exitosa a EC2'"
