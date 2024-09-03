@@ -56,14 +56,7 @@ jobs:
         EC2_USER: ${{ secrets.AWS_USER }}
         DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
-          set -e
+          
           RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
           
-          if [ -z \"\$RESULT\" ]; then
-            echo 'Bot no está en ejecución. Reiniciando...'
-            cd \$DEPLOY_DIR
-            nohup ./start_bot.sh &
-          else
-            echo 'Bot está en ejecución.'
-          fi
         
