@@ -44,7 +44,7 @@ jobs:
           if [ ! -d '$DEPLOY_DIR' ]; then
             sudo mkdir -p '$DEPLOY_DIR'
             cd '$DEPLOY_DIR'
-            sudo git clone '$REPO_URL'
+            sudo git clone '$REPO_URL' .
             sudo chmod 777 -R '$DEPLOY_DIR'
           else
             cd '$DEPLOY_DIR'
