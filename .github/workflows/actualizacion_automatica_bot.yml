@@ -29,4 +29,27 @@ jobs:
         EC2_USER: ${{ secrets.AWS_USER }}
       run: |
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "echo 'Conexión exitosa a EC2'"
-        
+    
+    # Objetivo: Clonar o actualizar el repositorio en el servidor EC2
+    - name: Actualizacion del repositorio
+      env:
+        EC2_IP: ${{ secrets.AWS_HOST }}
+        EC2_USER: ${{ secrets.AWS_USER }}
+        REPO_URL: ${{ secrets.HTTP_GIT }}  # URL del repositorio - es la dirección SSH o HTTP que usamos para el git clone
+        DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}  # Directorio de despliegue en EC2 -destino_git
+      run: |
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
+          set -e
+
+          if [ ! -d '$DEPLOY_DIR' ]; then
+            sudo mkdir -p '$DEPLOY_DIR'
+            cd '$DEPLOY_DIR'
+            sudo git clone '$REPO_URL' .
+            sudo chmod 777 -R '$DEPLOY_DIR'
+          else
+            cd '$DEPLOY_DIR'
+            sudo git reset --hard HEAD
+            sudo git pull origin main
+            sudo chmod 777 -R '$DEPLOY_DIR'
+          fi
+        "
