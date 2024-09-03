@@ -57,6 +57,7 @@ jobs:
         DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
           
-          RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
+          RESULT='ps aux | grep bot_telegram | grep -v grep'
+          
           
         
