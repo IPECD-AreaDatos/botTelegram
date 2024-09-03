@@ -62,22 +62,20 @@ jobs:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
         DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}  # Directorio donde está el bot
-      run: |
 
-        #Conectamos al servidor
+      run: |
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
           set -e
 
-          #Revisamos si existe un proceso en segundo plano llamado "bot_telegram"
           PID=\$(pgrep -f bot_telegram)
         
-          #Esta condicion revisa si la variable PID tiene un valor nulo o no. Si lo tiene, entonces el proceso no esta ejeuctandose.
           if [ -z \"\$PID\" ]; then
             echo 'bot_telegram no está en ejecución, iniciando...'
-            nohup python3 $DEPLOY_DIR/main.py > /dev/null 2>&1 &
+            nohup python3 $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
           else
             echo 'bot_telegram está en ejecución con PID: \$PID. Reiniciando...'
             kill -9 \$PID
             nohup python3 $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
-          fi
-        "
+          fi"
+
+      
