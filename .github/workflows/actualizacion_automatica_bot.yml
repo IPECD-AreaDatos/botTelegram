@@ -60,12 +60,10 @@ jobs:
           set -e
           RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
           if [ -n \"\$RESULT\" ]; then
+
             echo 'bot_telegram está en ejecución. Reiniciando...'
-            pkill -f bot_telegram
-            nohup python3 -u $DEPLOY_DIR/main.py --name=bot_telegram > /dev/null 2>&1 &
-            echo 'Proceso bot_telegram reiniciado.'
+
           else
             echo 'bot_telegram no está en ejecución, iniciando...'
-            nohup python3 -u $DEPLOY_DIR/main.py --name=bot_telegram > /dev/null 2>&1 &
             echo 'Proceso bot_telegram iniciado.'
           fi"
