@@ -71,10 +71,12 @@ jobs:
         
           if [ -z \"\$PID\" ]; then
             echo 'bot_telegram no está en ejecución, iniciando...'
-            
+
+            nohup python3 -u $DEPLOY_DIR/main.py --name="bot_telegram" > /dev/null 2>&1 &
+
+            echo 'Proceso bot_telegram iniciado.'
+
           else
             echo 'bot_telegram está en ejecución con PID: \$PID. Reiniciando...'
             
           fi"
-
-      
