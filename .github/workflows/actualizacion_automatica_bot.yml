@@ -64,7 +64,7 @@ jobs:
         DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}  # Directorio donde está el bot
 
       run: |
-        Run ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
           set -e
           
           # Buscar el proceso bot_telegram excluyendo el comando grep
