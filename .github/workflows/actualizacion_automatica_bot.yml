@@ -60,5 +60,5 @@ jobs:
           set -e
           RESULT=\$(ps aux | grep bot_telegram | grep -v grep)
 
-          cat $RESULT
+          echo $RESULT
           "
