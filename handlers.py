@@ -13,6 +13,7 @@ def setup_handlers(bot):
                 telebot.types.KeyboardButton(text="¿Que es?"),
                 telebot.types.KeyboardButton(text="Ultimo valor"),
                 telebot.types.KeyboardButton(text="Variaciones"),
+                telebot.types.KeyboardButton(text="¿Cual es la tendencia de los ultimos meses?"),
                 telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
             )
             bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPICORR?", reply_markup=board)
