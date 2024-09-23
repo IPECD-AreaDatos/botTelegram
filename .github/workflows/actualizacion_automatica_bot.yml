@@ -71,7 +71,7 @@ jobs:
 
           # Ejecutar nuevamente el bot
           echo 'Iniciando bot de Telegram...'
-          nohup python3 main.py > bot.log 2>&1 &
+          nohup python3 src/main.py > bot.log 2>&1 &
         "
 
           
