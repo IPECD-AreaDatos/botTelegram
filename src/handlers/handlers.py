@@ -1,6 +1,6 @@
 # handlers.py
-from bot_logic_ipicorr import resp_ipicorr
-from bot_logic_ipi import resp_ipi
+from logic.bot_logic_ipicorr import resp_ipicorr
+from logic.bot_logic_ipi import resp_ipi
 import telebot
 from functools import partial
 

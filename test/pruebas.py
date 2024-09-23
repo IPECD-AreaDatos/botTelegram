@@ -3,7 +3,7 @@ import locale
 import pandas as pd
 import pymysql
 import telebot
-from bot_helpers import send_menu_principal
+from src.helpers.bot_helpers import send_menu_principal
 from datetime import datetime, timedelta
 
 engine = sqlalchemy.create_engine("mysql+pymysql://estadistica:Estadistica2024!!@54.94.131.196:3306/datalake_economico")

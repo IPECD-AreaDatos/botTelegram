@@ -1,6 +1,6 @@
 import telebot
-from config import TOKEN
-from handlers import setup_handlers
+from config.config import TOKEN
+from handlers.handlers import setup_handlers
 
 bot = telebot.TeleBot(TOKEN, parse_mode=None)
 

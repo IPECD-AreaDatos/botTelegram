@@ -1,7 +1,7 @@
 import sqlalchemy
 import pandas as pd
 import telebot
-from bot_helpers import send_menu_principal
+from helpers.bot_helpers import send_menu_principal
 
 def read_data_ipi():
     engine = sqlalchemy.create_engine("mysql+pymysql://estadistica:Estadistica2024!!@54.94.131.196:3306/datalake_economico")

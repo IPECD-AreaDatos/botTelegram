@@ -3,7 +3,7 @@ import locale
 import pandas as pd
 import pymysql
 import telebot
-from bot_helpers import send_menu_principal
+from helpers.bot_helpers import send_menu_principal
 from datetime import datetime, timedelta
 import unicodedata
 
