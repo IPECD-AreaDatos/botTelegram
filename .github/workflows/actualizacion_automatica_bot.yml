@@ -50,15 +50,29 @@ jobs:
           fi"
 
     # Verificar y reiniciar el bot si está en ejecución
-    - name: verificar ejecucion en segundo plano del bot
+    - name: Verificar y reiniciar el bot de Telegram
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
         DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
+        ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
+          set -e
+          cd '$DEPLOY_DIR'
           
-          RESULT='ps aux | grep bot_telegram | grep -v grep'
+          # Buscar el proceso del bot
+          BOT_PROCESS=\$(ps aux | grep 'bot_telegram' | grep -v grep || true)
+          
+          # Si está corriendo, matarlo
+          if [ ! -z \"\$BOT_PROCESS\" ]; then
+            echo 'Bot corriendo, deteniéndolo...'
+            pkill -f bot_telegram
+          fi
 
-          echo $RESULT
+          # Ejecutar nuevamente el bot
+          echo 'Iniciando bot de Telegram...'
+          nohup python3 main.py > bot.log 2>&1 &
+        "
+
           
         
