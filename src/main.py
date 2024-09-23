@@ -13,6 +13,7 @@ def send_welcome(message):
     board.add(
         telebot.types.KeyboardButton(text="IPICORR"),
         telebot.types.KeyboardButton(text="IPI Nacion"),
+        telebot.types.KeyboardButton(text="Censos"),
     )
     bot.send_message(message.chat.id, "¿En qué puedo ayudarte?", reply_markup=board)
 
