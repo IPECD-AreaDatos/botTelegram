@@ -6,6 +6,7 @@ import telebot
 from helpers.bot_helpers import send_menu_principal
 from datetime import datetime, timedelta
 import unicodedata
+from functools import partial
 
 df_cache = None
 last_load_time = None
@@ -34,47 +35,121 @@ def read_data_censo_municipios():
     return df_cache
 
 def resp_censo(message, bot):
-    if message.text.lower() == "departamentos":
-        df = read_data_censo_departamentos()
+    if message.text.lower() == "quiero saber mas":
+        df = read_data_censo_municipios()  # Aquí lees los datos de departamentos (ajuste correcto)
         board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
         board.add(
             telebot.types.KeyboardButton(text="Cantidad de Población"),
-            telebot.types.KeyboardButton(text="Variacios Relativa"),
-            telebot.types.KeyboardButton(text="Densidad de habitantes por km²")
+            telebot.types.KeyboardButton(text="Variación de la Población"),
+            telebot.types.KeyboardButton(text="Peso de la Población"),
+            telebot.types.KeyboardButton(text="Volver al menu principal")
         )
-        bot.send_message(message.chat.id, "¿En qué quieres obtener información?", reply_markup=board)
-        bot.register_next_step_handler(message, lambda m: resp_censo_departamento(m, bot, df))
+        message_text = (
+            "📊 *Información sobre los Departamentos*\n"
+            "Por favor selecciona la información que deseas conocer:\n\n"
+            "🏘️ *Cantidad de Población*: Muestra el número total de habitantes.\n"
+            "📊 *Variación de la Población*: Comparación de población entre 2010 y 2022.\n"
+            "⚖️ *Peso de la Población*: Muestra la proporción de la población en relación al total.\n"
+            "\n🔙 *Volver al menú principal*: Para regresar a la pantalla principal."
+        )
+        bot.send_message(message.chat.id, message_text, reply_markup=board, parse_mode="Markdown")
+        bot.register_next_step_handler(message, lambda m: resp_censo_departamento(m, bot, df))  # Mantener bot y df
+    
     elif message.text.lower() == "municipios":
-        df = read_data_censo_municipios
+        df = read_data_censo_municipios()  # Aquí lees los datos de municipios
+        # Lógica para manejar municipios si es necesario
+    elif message.text.lower() == "quiero saber de otro tema":
+        bot.send_message(message.chat.id, "Gracias por consultar sobre Censo. ¿En qué más puedo ayudarte?")
+        send_menu_principal(bot, message.chat.id)  # Envía el menú principal
 
 def resp_censo_departamento(message, bot, df):
-    if message.text.lower() == "Cantidad de Población":
-        board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
-        board.add(
-            telebot.types.KeyboardButton(text="Total"),
-            telebot.types.KeyboardButton(text="Bella Vista"),
-            telebot.types.KeyboardButton(text="Berón de Astrada"),
-            telebot.types.KeyboardButton(text="Capital"),
-            telebot.types.KeyboardButton(text="Concepción"),
-            telebot.types.KeyboardButton(text="Curuzú Cuatiá"),
-            telebot.types.KeyboardButton(text="Empedrado"),
-            telebot.types.KeyboardButton(text="Esquina"),
-            telebot.types.KeyboardButton(text="General Alvear"),
-            telebot.types.KeyboardButton(text="General Paz"),
-            telebot.types.KeyboardButton(text="Goya"),
-            telebot.types.KeyboardButton(text="Itatí"),
-            telebot.types.KeyboardButton(text="Ituzaingó"),
-            telebot.types.KeyboardButton(text="Lavalle"),
-            telebot.types.KeyboardButton(text="Mburucuyá"),
-            telebot.types.KeyboardButton(text="Mercedes"),
-            telebot.types.KeyboardButton(text="Monte Caseros"),
-            telebot.types.KeyboardButton(text="Paso de los Libres"),
-            telebot.types.KeyboardButton(text="Saladas"),
-            telebot.types.KeyboardButton(text="San Cosme"),
-            telebot.types.KeyboardButton(text="San Luis del Palmar"),
-            telebot.types.KeyboardButton(text="San Martín"),
-            telebot.types.KeyboardButton(text="San Miguel"),
-            telebot.types.KeyboardButton(text="San Roque"),
-            telebot.types.KeyboardButton(text="Santo Tome"),
-            telebot.types.KeyboardButton(text="Sauce")
-        )
+    # Aquí gestionamos si el usuario selecciona "Cantidad de Población", "Variación de la Población" o "Peso"
+    opcion = ""
+    if message.text.lower() == "cantidad de población":
+        opcion = "cantidad poblacion"
+    elif message.text.lower() == "variación de la población":
+        opcion = "variacion poblacion"
+    elif message.text.lower() == "peso de la población":
+        opcion = "peso relativo"
+    elif message.text.lower() == "volver al menu principal":
+        send_menu_principal(bot, message.chat.id)
+        return
+    # Mostramos la lista de municipios
+    board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
+    municipios = [
+        "Pago de los Deseos (2012)", "San Isidro (2013)", "Palmar Grande", "Colonia Carlos Pellegrini", "Tapebicuá",
+        "Cazadores Correntinos (2018)", "Garruchos", "Bonpland", "San Antonio Isla Apipé Grande", "Pueblo Libertador",
+        "San Carlos", "Parada Pucheta", "Caá Catí", "Lomas de Vallejos", "Guaviraví", "Colonia Libertad", 
+        "Gobernador Virasoro", "San Roque", "Villa Olivari", "Colonia Liebig", "Tres de Abril (2011)", "Alvear",
+        "Yapeyú", "San Antonio de Itatí", "Sauce", "El Sombrero (2014)", "Loreto", "Pedro R. Fernández", 
+        "Paso de los Libres", "Concepción del Yaguareté Corá", "La Cruz", "Perugorría", "Manuel Derqui (2021)", 
+        "Cruz de los Milagros", "San Luis del Palmar", "Ramada Paso", "Curuzú Cuatiá", "Colonia Pando", "Tatacuá",
+        "San Miguel", "Corrientes", "Mercedes", "9 de julio", "Garaví", "Monte Caseros", "Tabay", "Santo Tomé",
+        "Cecilio Echavarría (2018)", "Mburucuyá", "Gobernador Martínez", "Itá Ibaté", "Chavarría", "Estación Torrent",
+        "Goya", "Santa Rosa", "Esquina", "Mocoretá", "San Cosme", "Mariano I. Loza", "Bella Vista", "Ituzaingó", 
+        "Itatí", "Felipe Yofré", "Paso de la Patria", "San Lorenzo", "Yatay Ti Calle", "Santa Ana de los Guácaras", 
+        "Santa Lucía", "Carolina", "Empedrado", "Saladas", "Juan Pujol", "Lavalle", "Riachuelo", "Herlitzka"
+    ]
+
+    for municipio in municipios:
+        board.add(telebot.types.KeyboardButton(text=municipio))
+
+    bot.send_message(message.chat.id, "Selecciona un municipio para obtener información:", reply_markup=board)
+    bot.register_next_step_handler(message, lambda m: mostrar_datos_departamento(m, bot, df, opcion, "departamentos"))
+
+def mostrar_datos_departamento(message, bot, df, opcion, contexto):
+    # Mostramos los datos según la opción seleccionada
+    departamento = message.text  # Nombre del departamento/municipio seleccionado
+    datos_departamento = df[df['municipio'] == departamento]  # Filtra el DataFrame por el departamento seleccionado
+    
+    if not datos_departamento.empty:
+        nombre_municipio = f"📍 *Datos del municipio {departamento}*:\n"
+        
+        if opcion == "cantidad poblacion":
+            poblacion = datos_departamento['poblacion_viv_part_2022'].values[0]
+            mensaje = (
+                f"{nombre_municipio}"
+                f"👥 *Población Total*: {poblacion:,} habitantes\n"
+            )
+        elif opcion == "variacion poblacion":
+            variacion = datos_departamento['var_abs_poblacion_2010_vs_2022'].values[0]
+            mensaje = (
+                f"{nombre_municipio}"
+                f"📊 *Variación Poblacional*: {variacion:,} habitantes entre 2010 y 2022\n"
+            )
+        elif opcion == "peso relativo":
+            peso = datos_departamento['peso_relativo_2022'].values[0]
+            mensaje = (
+                f"{nombre_municipio}"
+                f"⚖️ *Peso Relativo*: {peso}% de la población total\n"
+            )
+        # Enviar el mensaje con los datos
+        bot.send_message(message.chat.id, mensaje)
+
+        # Volver al menú principal después de mostrar la información
+        send_menu_censo(bot, message)
+    else:
+        bot.send_message(message.chat.id, "No se encontraron datos para el municipio seleccionado.")
+        send_menu_censo(bot, message)
+
+def send_menu_censo(bot, message):
+    # Volver al menú inicial del Censo
+    df = read_data_censo_municipios()  # Aquí lees los datos de departamentos (ajuste correcto)
+    board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
+    board.add(
+        telebot.types.KeyboardButton(text="Cantidad de Población"),
+        telebot.types.KeyboardButton(text="Variación de la Población"),
+        telebot.types.KeyboardButton(text="Peso de la Población"),
+        telebot.types.KeyboardButton(text="Volver al menu principal")
+    )
+    message_text = (
+        "📊 *Información sobre los Departamentos*\n"
+        "Por favor selecciona la información que deseas conocer:\n\n"
+        "🏘️ *Cantidad de Población*: Muestra el número total de habitantes.\n"
+        "📊 *Variación de la Población*: Comparación de población entre 2010 y 2022.\n"
+        "⚖️ *Peso de la Población*: Muestra la proporción de la población en relación al total.\n"
+        "\n🔙 *Volver al menú principal*: Para regresar a la pantalla principal."
+    )
+    bot.send_message(message.chat.id, message_text, reply_markup=board, parse_mode="Markdown")
+    bot.register_next_step_handler(message, lambda m: resp_censo_departamento(m, bot, df))  # Mantener bot y df
+

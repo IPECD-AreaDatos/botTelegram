@@ -12,8 +12,8 @@ def send_welcome(message):
     board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
     board.add(
         telebot.types.KeyboardButton(text="IPICORR"),
-        telebot.types.KeyboardButton(text="IPI Nacion"),
-        telebot.types.KeyboardButton(text="Censos"),
+        telebot.types.KeyboardButton(text="IPI NACION"),
+        telebot.types.KeyboardButton(text="Censo"),
     )
     bot.send_message(message.chat.id, "¿En qué puedo ayudarte?", reply_markup=board)
 

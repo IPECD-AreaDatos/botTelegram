@@ -6,7 +6,7 @@ import telebot
 from functools import partial
 
 def setup_handlers(bot):
-    @bot.message_handler(func=lambda message: message.text in ["IPICORR", "IPI"])
+    @bot.message_handler(func=lambda message: message.text in ["IPICORR", "IPI", "Censo"])
     def handle_choice(message):
         if message.text == "IPICORR":
             board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
@@ -19,7 +19,8 @@ def setup_handlers(bot):
             )
             bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPICORR?", reply_markup=board)
             bot.register_next_step_handler(message, partial(resp_ipicorr, bot=bot))
-        elif message.text == "IPI Nacion":
+        
+        elif message.text == "IPI NACION":
             board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
             board.add(
                 telebot.types.KeyboardButton(text="¿Que es?"),
@@ -27,13 +28,15 @@ def setup_handlers(bot):
             )
             bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPI?", reply_markup=board)
             bot.register_next_step_handler(message, partial(resp_ipi, bot=bot))
+
         elif message.text == "Censo":
-            bot.send_message(message.chat.id, "Como dato de Censo tenemos datos recolectados en 2022 para la provincia de Corrientes. Eliga de que forma quiere verlos:")
-            board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+            board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)  
             board.add(
-                telebot.types.KeyboardButton(text="Departamentos"),
-                telebot.types.KeyboardButton(text="Municipios"),
+                telebot.types.KeyboardButton(text="Quiero saber mas"),
+                telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
             )
-            bot.register_next_step_handler(message, partial(resp_censo, bot=bot))
+            bot.send_message(message.chat.id, "Como dato de Censo tenemos datos recolectados en 2022 para la provincia de Corrientes.", reply_markup=board)
+            bot.register_next_step_handler(message, partial(resp_censo, bot=bot)) 
         else:
             bot.send_message(message.chat.id, "Opción no válida, por favor elige de nuevo.")
+

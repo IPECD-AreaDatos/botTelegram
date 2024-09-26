@@ -6,5 +6,6 @@ def send_menu_principal(bot, chat_id):
     board.add(
         telebot.types.KeyboardButton(text="IPICORR"),
         telebot.types.KeyboardButton(text="IPI Nacion"),
+        telebot.types.KeyboardButton(text="Censo"),
     )
     bot.send_message(chat_id, "¿En qué puedo ayudarte?", reply_markup=board)
