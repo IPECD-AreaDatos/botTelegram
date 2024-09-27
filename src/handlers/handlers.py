@@ -6,7 +6,7 @@ import telebot
 from functools import partial
 
 def setup_handlers(bot):
-    @bot.message_handler(func=lambda message: message.text in ["IPICORR", "IPI", "Censo"])
+    @bot.message_handler(func=lambda message: message.text in ["IPICORR", "IPI Nacion", "Censo"])
     def handle_choice(message):
         if message.text == "IPICORR":
             board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
