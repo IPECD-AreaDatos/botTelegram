@@ -7,6 +7,7 @@ from helpers.bot_helpers import send_menu_principal
 from datetime import datetime, timedelta
 import unicodedata
 from functools import partial
+import locale
 
 df_cache = None
 last_load_time = None
@@ -39,17 +40,19 @@ def resp_censo(message, bot):
         df = read_data_censo_municipios()  # Aquí lees los datos de departamentos (ajuste correcto)
         board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
         board.add(
-            telebot.types.KeyboardButton(text="Cantidad de Población"),
+            telebot.types.KeyboardButton(text="Total de la Población"),
+            telebot.types.KeyboardButton(text="Poblacion por municipio"),
             telebot.types.KeyboardButton(text="Variación de la Población"),
             telebot.types.KeyboardButton(text="Peso de la Población"),
             telebot.types.KeyboardButton(text="Volver al menu principal")
         )
         message_text = (
-            "📊 *Información sobre los Departamentos*\n"
+            "📊 Información sobre los Departamentos\n"
             "Por favor selecciona la información que deseas conocer:\n\n"
             "🏘️ *Cantidad de Población*: Muestra el número total de habitantes.\n"
             "📊 *Variación de la Población*: Comparación de población entre 2010 y 2022.\n"
             "⚖️ *Peso de la Población*: Muestra la proporción de la población en relación al total.\n"
+            "👥 *Total de la Población*: Muestra la cantidad total de habitantes en todos los municipios.\n"
             "\n🔙 *Volver al menú principal*: Para regresar a la pantalla principal."
         )
         bot.send_message(message.chat.id, message_text, reply_markup=board, parse_mode="Markdown")
@@ -63,7 +66,8 @@ def resp_censo(message, bot):
         send_menu_principal(bot, message.chat.id)  # Envía el menú principal
 
 def resp_censo_departamento(message, bot, df):
-    # Aquí gestionamos si el usuario selecciona "Cantidad de Población", "Variación de la Población" o "Peso"
+    locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
+    # Aquí gestionamos si el usuario selecciona "Cantidad de Población", "Variación de la Población", "Peso", o "Total de la Población"
     opcion = ""
     if message.text.lower() == "cantidad de población":
         opcion = "cantidad poblacion"
@@ -71,24 +75,35 @@ def resp_censo_departamento(message, bot, df):
         opcion = "variacion poblacion"
     elif message.text.lower() == "peso de la población":
         opcion = "peso relativo"
+    elif message.text.lower() == "total de la población":
+        opcion = "total poblacion"  # Opción para el total de la población
     elif message.text.lower() == "volver al menu principal":
         send_menu_principal(bot, message.chat.id)
         return
-    # Mostramos la lista de municipios
+
+    if opcion == "total poblacion":
+        total_poblacion = df['poblacion_viv_part_2022'].sum()
+        total_poblacion_modificada = locale.format_string('%d', total_poblacion, grouping=True)
+        mensaje = f"👥 Población Total en todos los municipios: {total_poblacion_modificada} habitantes\n"
+        bot.send_message(message.chat.id, mensaje)
+        send_menu_censo(bot, message)
+        return
+    
+    # Mostrar la lista de municipios si no se selecciona la opción de total
     board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
     municipios = [
-        "Pago de los Deseos (2012)", "San Isidro (2013)", "Palmar Grande", "Colonia Carlos Pellegrini", "Tapebicuá",
-        "Cazadores Correntinos (2018)", "Garruchos", "Bonpland", "San Antonio Isla Apipé Grande", "Pueblo Libertador",
-        "San Carlos", "Parada Pucheta", "Caá Catí", "Lomas de Vallejos", "Guaviraví", "Colonia Libertad", 
-        "Gobernador Virasoro", "San Roque", "Villa Olivari", "Colonia Liebig", "Tres de Abril (2011)", "Alvear",
-        "Yapeyú", "San Antonio de Itatí", "Sauce", "El Sombrero (2014)", "Loreto", "Pedro R. Fernández", 
-        "Paso de los Libres", "Concepción del Yaguareté Corá", "La Cruz", "Perugorría", "Manuel Derqui (2021)", 
-        "Cruz de los Milagros", "San Luis del Palmar", "Ramada Paso", "Curuzú Cuatiá", "Colonia Pando", "Tatacuá",
-        "San Miguel", "Corrientes", "Mercedes", "9 de julio", "Garaví", "Monte Caseros", "Tabay", "Santo Tomé",
-        "Cecilio Echavarría (2018)", "Mburucuyá", "Gobernador Martínez", "Itá Ibaté", "Chavarría", "Estación Torrent",
-        "Goya", "Santa Rosa", "Esquina", "Mocoretá", "San Cosme", "Mariano I. Loza", "Bella Vista", "Ituzaingó", 
-        "Itatí", "Felipe Yofré", "Paso de la Patria", "San Lorenzo", "Yatay Ti Calle", "Santa Ana de los Guácaras", 
-        "Santa Lucía", "Carolina", "Empedrado", "Saladas", "Juan Pujol", "Lavalle", "Riachuelo", "Herlitzka"
+        "9 de julio", "Alvear", "Bella Vista", "Bonpland", "Caá Catí", "Carolina", "Cazadores Correntinos (2018)",
+        "Cecilio Echavarría (2018)", "Colonia Carlos Pellegrini", "Colonia Libertad", "Colonia Liebig", "Colonia Pando",
+        "Concepción del Yaguareté Corá", "Corrientes", "Cruz de los Milagros", "Curuzú Cuatiá", "El Sombrero (2014)",
+        "Empedrado", "Esquina", "Estación Torrent", "Felipe Yofré", "Garaví", "Garruchos", "Gobernador Martínez",
+        "Gobernador Virasoro", "Goya", "Guaviraví", "Herlitzka", "Itá Ibaté", "Itatí", "Ituzaingó", "Juan Pujol",
+        "La Cruz", "Lavalle", "Lomas de Vallejos", "Loreto", "Manuel Derqui (2021)", "Mariano I. Loza", "Mburucuyá",
+        "Mercedes", "Mocoretá", "Monte Caseros", "Palmar Grande", "Pago de los Deseos (2012)", "Parada Pucheta",
+        "Paso de la Patria", "Paso de los Libres", "Pedro R. Fernández", "Perugorría", "Pueblo Libertador", "Ramada Paso",
+        "Riachuelo", "Saladas", "San Antonio Isla Apipé Grande", "San Antonio de Itatí", "San Carlos", "San Cosme",
+        "San Isidro (2013)", "San Lorenzo", "San Luis del Palmar", "San Miguel", "San Roque", "Santa Ana de los Guácaras",
+        "Santa Lucía", "Santa Rosa", "Santo Tomé", "Sauce", "Tabay", "Tapebicuá", "Tatacuá", "Tres de Abril (2011)",
+        "Villa Olivari", "Yapeyú", "Yatay Ti Calle"
     ]
 
     for municipio in municipios:
@@ -98,30 +113,32 @@ def resp_censo_departamento(message, bot, df):
     bot.register_next_step_handler(message, lambda m: mostrar_datos_departamento(m, bot, df, opcion, "departamentos"))
 
 def mostrar_datos_departamento(message, bot, df, opcion, contexto):
+    locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
     # Mostramos los datos según la opción seleccionada
     departamento = message.text  # Nombre del departamento/municipio seleccionado
     datos_departamento = df[df['municipio'] == departamento]  # Filtra el DataFrame por el departamento seleccionado
     
     if not datos_departamento.empty:
-        nombre_municipio = f"📍 *Datos del municipio {departamento}*:\n"
+        nombre_municipio = f"📍 Datos del municipio {departamento}:\n"
         
         if opcion == "cantidad poblacion":
             poblacion = datos_departamento['poblacion_viv_part_2022'].values[0]
+            poblacion_modificada = locale.format_string('%d', poblacion, grouping=True)
             mensaje = (
                 f"{nombre_municipio}"
-                f"👥 *Población Total*: {poblacion:,} habitantes\n"
+                f"👥 Población Total: {poblacion_modificada} habitantes\n"
             )
         elif opcion == "variacion poblacion":
             variacion = datos_departamento['var_abs_poblacion_2010_vs_2022'].values[0]
             mensaje = (
                 f"{nombre_municipio}"
-                f"📊 *Variación Poblacional*: {variacion:,} habitantes entre 2010 y 2022\n"
+                f"📊 Variación Poblacional: {variacion:,} habitantes entre 2010 y 2022\n"
             )
         elif opcion == "peso relativo":
             peso = datos_departamento['peso_relativo_2022'].values[0]
             mensaje = (
                 f"{nombre_municipio}"
-                f"⚖️ *Peso Relativo*: {peso}% de la población total\n"
+                f"⚖️ Peso Relativo: {peso}% de la población total\n"
             )
         # Enviar el mensaje con los datos
         bot.send_message(message.chat.id, mensaje)
