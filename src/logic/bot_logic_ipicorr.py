@@ -124,7 +124,7 @@ def resp_ipicorr_tendencias(message, bot, df):
         bot.register_next_step_handler(message, lambda m: send_menu_ipicorr(bot, m))
 
     else:
-        bot.send_message(message.chat.id, "Por favor ingresa una opción válida: '3 meses', '6 meses' o '12 meses'.")
+        bot.send_message(message.chat.id, "Por favor selecciona una opción válida: '3 meses', '6 meses' o '12 meses'.")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr_tendencias(m, bot, df))
 
 
