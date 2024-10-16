@@ -5,8 +5,6 @@ import pymysql
 import telebot
 from helpers.bot_helpers import send_menu_principal
 from datetime import datetime, timedelta
-import unicodedata
-
 
 # Variables globales para almacenar el dataframe y la fecha de carga
 df_cache = None
@@ -32,106 +30,111 @@ def load_data():
             'Var_Interanual_Metales'
         ]
         df_cache[columns_to_multiply] = df_cache[columns_to_multiply] * 100
+        df_cache['Fecha'] = pd.to_datetime(df_cache['Fecha'], format='%b-%Y')
         last_load_time = datetime.now()  # Actualizamos el tiempo de la última carga
     else:
         print("Usando datos desde caché...")
     
     return df_cache
 
-# Función para calcular la tendencia
-def calcular_promedio_tendencia(df, meses):
-    promedio = df['Var_Interanual_IPICORR'].iloc[-meses:].mean()
-    if promedio > 0:
-        return f"el índice IPICorr ha mostrado una tendencia al alza con un crecimiento promedio del {promedio:.2f}%"
-    else:
-        return f"el índice IPICorr ha mostrado una tendencia a la baja con un descenso promedio del {promedio:.2f}%"
+# Función para calcular la tendencia por año
+def calcular_promedio_anual(df, año):
+    """Calcula el promedio de variaciones para un año completo."""
+    datos_anuales = df[df['Fecha'].dt.year == año]
 
-# Función principal de respuesta sobre IPICORR (menú principal)
+    if datos_anuales.empty:
+        return f"No hay datos disponibles para el año {año}."
+
+    promedio = datos_anuales['Var_Interanual_IPICORR'].mean()
+    return f"El promedio de variación interanual en {año} fue de {promedio:.2f}%."
+
+# Función principal de respuesta sobre IPICORR
 def resp_ipicorr(message, bot):
     df = load_data()
     user_input = message.text.lower().strip()
 
     if user_input == "¿que es?":
-        bot.send_message(message.chat.id, "El Instituto Provincial de Estadistica y Ciencia de Datos en conjunto con el Ministerio de Industria, trabaja en el Índice de Producción Industrial manufacturero de la provincia de Corrientes (IPICorr). El mismo reúne información de las principales empresas industriales que producen y comercializan productos. Su objetivo es medir la evolución mensual de la actividad económica de la industria en la provincia.\n"
-            "Las variaciones que tiene IPICORR son las siguientes:\n"
-            "* Interanual IPICORR\n"
-            "* Interanual Alimentos\n"
-            "* Interanual Textil\n"
-            "* Interanual Maderas\n"
-            "* Interanual Minerales No Metalicos\n"
-            "* Interanual Metales")        
-        bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))  # Sigue en la misma función
+        bot.send_message(message.chat.id, (
+            "El IPICorr mide la evolución mensual de la industria en Corrientes. "
+            "Incluye las siguientes variaciones:\n"
+            "- Interanual IPICORR\n"
+            "- Interanual Alimentos\n"
+            "- Interanual Textil\n"
+            "- Interanual Maderas\n"
+            "- Interanual Minerales No Metálicos\n"
+            "- Interanual Metales"
+        ))
+        bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
     elif user_input == "ultimo valor":
         last_value = df['Var_Interanual_IPICORR'].iloc[-1]
-        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-        fecha_texto = df['Fecha'].iloc[-1].strftime('%B %Y')
-        bot.send_message(message.chat.id, f"El último valor de IPICORR es: {last_value :.2f}% correspondiente a {fecha_texto}")
+        fecha = df['Fecha'].iloc[-1]
+        fecha_texto = get_fecha_en_espanol(fecha)  # Usamos la nueva función
+
+        bot.send_message(
+            message.chat.id, 
+            f"El último valor de IPICORR es: {last_value:.2f}% correspondiente a {fecha_texto}"
+        )
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
     elif user_input == "variaciones":
-        board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        board.add(
-            telebot.types.KeyboardButton(text="Interanual IPICORR"),
-            telebot.types.KeyboardButton(text="Interanual Alimentos"),
-            telebot.types.KeyboardButton(text="Interanual Textil"),
-            telebot.types.KeyboardButton(text="Interanual Maderas"),
-            telebot.types.KeyboardButton(text="Interanual Minerales No Metalicos"),
-            telebot.types.KeyboardButton(text="Interanual Metales"),
-            telebot.types.KeyboardButton(text="Quiero consultar otro tema de IPICORR"),
-            telebot.types.KeyboardButton(text="Volver al menú principal")
-        )    
-        bot.send_message(message.chat.id, "¿Qué variación te interesa consultar?", reply_markup=board)
-        bot.register_next_step_handler(message, lambda m: resp_ipicorr_variaciones(m, bot, df))
-        
-    elif user_input == "quiero saber de otro tema":
-        bot.send_message(message.chat.id, "Gracias por consultar sobre IPICORR. ¿En qué más puedo ayudarte?")
-        send_menu_principal(bot, message.chat.id)  # Envía el menú principal
+        mostrar_menu_variaciones(bot, message)
 
-    elif user_input == "¿cual es la tendencia de los ultimos meses?":
-        board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        board.add(
-            telebot.types.KeyboardButton(text="3 meses"),
-            telebot.types.KeyboardButton(text="6 meses"),
-            telebot.types.KeyboardButton(text="12 meses"),
-            telebot.types.KeyboardButton(text="Quiero consultar otro tema de IPICORR"),
-            telebot.types.KeyboardButton(text="Volver al menú principal")
-        )
-        bot.send_message(message.chat.id, "¿Sobre cuántos meses quieres ver la tendencia?", reply_markup=board)
-        bot.register_next_step_handler(message, lambda m: resp_ipicorr_tendencias(m, bot, df))
+    elif user_input == "¿cual es la tendencia en los ultimos años?":
+        mostrar_menu_tendencias(bot, message)
+
+    elif user_input == "quiero saber de otro tema":
+        bot.send_message(message.chat.id, "Gracias por consultar sobre IPICORR.")
+        send_menu_principal(bot, message.chat.id)
 
     else:
-        bot.send_message(message.chat.id, "Opción no válida, por favor elige de nuevo.")
+        bot.send_message(message.chat.id, "Opción no válida. Elige nuevamente.")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
-# Función para gestionar las tendencias
+def mostrar_menu_variaciones(bot, message):
+    """Muestra el menú de variaciones interanuales."""
+    board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    opciones = [
+        "Interanual IPICORR", "Interanual Alimentos", "Interanual Textil",
+        "Interanual Maderas", "Interanual Minerales No Metalicos", 
+        "Interanual Metales", "Volver al menú principal"
+    ]
+    for opcion in opciones:
+        board.add(telebot.types.KeyboardButton(text=opcion))
+    bot.send_message(message.chat.id, "¿Qué variación deseas consultar?", reply_markup=board)
+    bot.register_next_step_handler(message, lambda m: resp_ipicorr_variaciones(m, bot, df_cache))
+
+def mostrar_menu_tendencias(bot, message):
+    """Muestra el menú para consultar tendencias por año."""
+    board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    board.add(
+        telebot.types.KeyboardButton(text="2022"),
+        telebot.types.KeyboardButton(text="2023"),
+        telebot.types.KeyboardButton(text="2024"),
+        telebot.types.KeyboardButton(text="Volver al menú principal")
+    )
+    bot.send_message(message.chat.id, "¿De qué año deseas ver la tendencia?", reply_markup=board)
+    bot.register_next_step_handler(message, lambda m: resp_ipicorr_tendencias(m, bot, df_cache))
+
 def resp_ipicorr_tendencias(message, bot, df):
-    user_input = message.text.lower().strip()
+    """Responde con la tendencia anual para el año seleccionado."""
+    user_input = message.text.strip()
 
-    if user_input in ["3 meses", "6 meses", "12 meses"]:
-        meses = int(user_input.split()[0])
-        respuesta = calcular_promedio_tendencia(df, meses)
-        bot.send_message(message.chat.id, f"En los últimos {meses} meses, {respuesta}")
-        bot.register_next_step_handler(message, lambda m: resp_ipicorr_tendencias(m, bot, df))
-        
-    elif user_input == "quiero consultar otro tema de ipicorr":     
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Gracias por consultar sobre las variaciones de IPICORR", reply_markup=hide_board)
-        send_menu_ipicorr(bot, message)
-        
+    if user_input.isdigit() and int(user_input) in [2022, 2023, 2024]:
+        año = int(user_input)
+        respuesta = calcular_promedio_anual(df, año)
+        bot.send_message(message.chat.id, respuesta)
+        mostrar_menu_tendencias(bot, message)
     elif user_input == "volver al menú principal":
-        # Al seleccionar "Volver al menú principal", redirigir al menú principal (resp_ipicorr)
-        bot.register_next_step_handler(message, lambda m: send_menu_ipicorr(bot, m))
-
+        send_menu_principal(bot, message.chat.id)
     else:
-        bot.send_message(message.chat.id, "Por favor selecciona una opción válida: '3 meses', '6 meses' o '12 meses'.")
-        bot.register_next_step_handler(message, lambda m: resp_ipicorr_tendencias(m, bot, df))
+        bot.send_message(message.chat.id, "Por favor selecciona un año válido.")
+        mostrar_menu_tendencias(bot, message)
 
-
-# Función para gestionar las variaciones
 def resp_ipicorr_variaciones(message, bot, df):
+    """Maneja las respuestas de variaciones."""
     user_input = message.text.lower().strip()
-    variaciones_mapping = {
+    variaciones = {
         "interanual ipicorr": "Var_Interanual_IPICORR",
         "interanual alimentos": "Var_Interanual_Alimentos",
         "interanual textil": "Var_Interanual_Textil",
@@ -140,37 +143,27 @@ def resp_ipicorr_variaciones(message, bot, df):
         "interanual metales": "Var_Interanual_Metales"
     }
 
-    if user_input in variaciones_mapping:
-        last_value = df[variaciones_mapping[user_input]].iloc[-1]
+    if user_input in variaciones:
+        last_value = df[variaciones[user_input]].iloc[-1]
         fecha_texto = df['Fecha'].iloc[-1].strftime('%B %Y')
-        bot.send_message(message.chat.id, f"El último valor de {user_input} es: {last_value :.2f}% correspondiente a {fecha_texto}")
+        bot.send_message(message.chat.id, f"El último valor de {user_input} es: {last_value:.2f}% correspondiente a {fecha_texto}")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr_variaciones(m, bot, df))
-    
-    elif user_input == "quiero consultar otro tema de ipicorr":     
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Gracias por consultar sobre las variaciones de IPICORR", reply_markup=hide_board)
-        send_menu_ipicorr(bot, message)
     elif user_input == "volver al menú principal":
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Gracias por consultar sobre las variaciones de IPICORR", reply_markup=hide_board)
         send_menu_principal(bot, message.chat.id)
     else:
-        bot.send_message(message.chat.id, "Opción no válida, por favor elige de nuevo.")
+        bot.send_message(message.chat.id, "Opción no válida. Elige nuevamente.")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr_variaciones(m, bot, df))
 
 
-def send_menu_ipicorr(bot, message):
-    # Volver al menú inicial de IPICORR
-    board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    board.add(
-        telebot.types.KeyboardButton(text="¿Que es?"),
-        telebot.types.KeyboardButton(text="Ultimo valor"),
-        telebot.types.KeyboardButton(text="Variaciones"),
-        telebot.types.KeyboardButton(text="¿Cual es la tendencia de los ultimos meses?"),
-        telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
-    )
+def get_fecha_en_espanol(fecha):
+    """Devuelve la fecha formateada en español."""
+    try:
+        # Intentamos establecer la localización a español
+        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+    except locale.Error:
+        # Si no está disponible, intentamos con otra opción (Windows a veces usa 'Spanish_Spain')
+        locale.setlocale(locale.LC_TIME, 'es_ES')
 
-    bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?", reply_markup=board)
-    
-    # Registrar el próximo paso para que resp_ipicorr maneje la respuesta del usuario
-    bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
+    # Formateamos la fecha al estilo "marzo 2024"
+    fecha_en_espanol = fecha.strftime('%B %Y').capitalize()
+    return fecha_en_espanol
