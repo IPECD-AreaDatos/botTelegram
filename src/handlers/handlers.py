@@ -51,7 +51,9 @@ def setup_handlers(bot):
             telebot.types.KeyboardButton(text="Ultimo valor"),
             telebot.types.KeyboardButton(text="Variaciones"),
             telebot.types.KeyboardButton(text="¿Cual es la tendencia en los ultimos años?"),
-            telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
+            telebot.types.KeyboardButton(text="Ver grafico"),
+            telebot.types.KeyboardButton(text="Consulta personalizada"),
+            telebot.types.KeyboardButton(text="Quiero saber de otro tema")
         )
         bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPICORR?", reply_markup=board)
         bot.register_next_step_handler(message, partial(resp_ipicorr, bot=bot))
