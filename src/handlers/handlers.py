@@ -47,9 +47,9 @@ def setup_handlers(bot):
     def mostrar_menu_ipicorr(bot, message):
         board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         board.add(
-            telebot.types.KeyboardButton(text="¿Que es?"),
+            telebot.types.KeyboardButton(text="¿Que es IPICORR?"),
             telebot.types.KeyboardButton(text="Ultimo valor"),
-            telebot.types.KeyboardButton(text="Variaciones"),
+            telebot.types.KeyboardButton(text="Ver variaciones(categorias)"),
             telebot.types.KeyboardButton(text="¿Cual es la tendencia en los ultimos años?"),
             telebot.types.KeyboardButton(text="Ver grafico"),
             telebot.types.KeyboardButton(text="Consulta personalizada"),
