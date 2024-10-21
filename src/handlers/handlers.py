@@ -1,6 +1,6 @@
 # handlers.py
 from logic.bot_logic_ipicorr import resp_ipicorr
-from logic.bot_logic_ipi import resp_ipi
+from logic.bot_logic_ipi import resp_ipi_nacion
 from logic.bot_logic_censo import resp_censo
 import telebot
 from functools import partial
@@ -18,11 +18,11 @@ def setup_handlers(bot):
         bot.reply_to(message, "¡Hasta luego! 👋 Espero haberte sido de ayuda. No dudes en escribirme si necesitas más información.")
 
     # Manejador para opciones principales: IPICORR, IPI NACION, Censo
-    @bot.message_handler(func=lambda message: message.text in ["IPICORR", "IPI NACION", "Censo"])
+    @bot.message_handler(func=lambda message: message.text in ["IPICORR", "IPI Nacion", "Censo"])
     def handle_choice(message):
         if message.text == "IPICORR":
             mostrar_menu_ipicorr(bot, message)
-        elif message.text == "IPI NACION":
+        elif message.text == "IPI Nacion":
             mostrar_menu_ipi(bot, message)
         elif message.text == "Censo":
             mostrar_menu_censo(bot, message)
@@ -38,7 +38,7 @@ def setup_handlers(bot):
         board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
         board.add(
             telebot.types.KeyboardButton(text="IPICORR"),
-            telebot.types.KeyboardButton(text="IPI NACION"),
+            telebot.types.KeyboardButton(text="IPI Nacion"),
             telebot.types.KeyboardButton(text="Censo"),
         )
         bot.send_message(message.chat.id, "Selecciona una opción:", reply_markup=board)
@@ -62,11 +62,13 @@ def setup_handlers(bot):
     def mostrar_menu_ipi(bot, message):
         board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
         board.add(
-            telebot.types.KeyboardButton(text="¿Que es?"),
+            telebot.types.KeyboardButton(text="¿Que es IPI Nacion?"),
+            telebot.types.KeyboardButton(text="Ultimo valor"),
+            telebot.types.KeyboardButton(text="Ver Grafico"),
             telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
         )
         bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPI?", reply_markup=board)
-        bot.register_next_step_handler(message, partial(resp_ipi, bot=bot))
+        bot.register_next_step_handler(message, partial(resp_ipi_nacion, bot=bot))
 
     # Menú de Censo
     def mostrar_menu_censo(bot, message):

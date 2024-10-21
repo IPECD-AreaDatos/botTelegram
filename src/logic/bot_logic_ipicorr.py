@@ -100,7 +100,7 @@ def resp_ipicorr(message, bot):
     df = load_data()
     user_input = message.text.lower().strip()
 
-    if user_input == "¿que es?":
+    if user_input == "¿que es ipicorr?":
         bot.send_message(message.chat.id, (
             "El IPICorr mide la evolución mensual de la industria en Corrientes. "
             "Incluye las siguientes variaciones:\n"
@@ -124,14 +124,14 @@ def resp_ipicorr(message, bot):
         )
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
-    elif user_input == "variaciones(categorias)":
+    elif user_input == "ver variaciones(categorias)":
         mostrar_menu_variaciones(bot, message)
 
     elif user_input == "¿cual es la tendencia en los ultimos años?":
         mostrar_menu_tendencias(bot, message)
 
     elif user_input == "ver grafico":
-        pedir_meses_grafico(bot, message)
+        pedir_sector_grafico(bot, message)
 
     elif user_input == "consulta personalizada":
         pedir_fecha_personalizada(bot, message)
@@ -260,13 +260,44 @@ def calcular_promedio_anual(df, año):
     return f"El promedio de variación interanual en {año} fue de {promedio:.1f}%."
 
 #----------------------Generacion de Graficos----------------------
-def pedir_meses_grafico(bot, message):
-    """Solicita al usuario el número de meses para el gráfico."""
-    bot.send_message(message.chat.id, "¿Cuántos meses quieres mostrar en el gráfico?Responda con un número mayor que 0")
-    bot.register_next_step_handler(message, lambda m: generar_y_enviar_grafico(m, bot))
+def pedir_sector_grafico(bot, message):
+    """Solicita al usuario el sector del IPICORR para el gráfico."""
+    # Crear el teclado con las opciones de sectores
+    board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    opciones = [
+        "Interanual IPICORR", "Alimentos", "Textil", 
+        "Maderas", "Minerales No Metalicos", "Metales"
+    ]
+    for opcion in opciones:
+        board.add(telebot.types.KeyboardButton(text=opcion))
 
-def generar_y_enviar_grafico(message, bot):
-    """Genera y envía el gráfico según el número de meses indicado por el usuario."""
+    bot.send_message(message.chat.id, "¿Qué sector del IPICORR quieres graficar?", reply_markup=board)
+    bot.register_next_step_handler(message, lambda m: pedir_meses_grafico(m, bot))
+
+def pedir_meses_grafico(message, bot):
+    """Solicita al usuario el número de meses para el gráfico del sector seleccionado."""
+    # Guardar el sector seleccionado por el usuario
+    sector = message.text.lower().strip()
+    valid_sectors = {
+        "interanual ipicorr": "Var_Interanual_IPICORR",
+        "alimentos": "Var_Interanual_Alimentos",
+        "textil": "Var_Interanual_Textil",
+        "maderas": "Var_Interanual_Maderas",
+        "minerales no metalicos": "Var_Interanual_MinNoMetalicos",
+        "metales": "Var_Interanual_Metales"
+    }
+
+    if sector not in valid_sectors:
+        bot.send_message(message.chat.id, "Opción no válida. Elige un sector válido.")
+        pedir_sector_grafico(bot, message)
+        return
+
+    # Enviar al siguiente paso con el sector seleccionado
+    bot.send_message(message.chat.id, f"¿Cuántos meses quieres mostrar para {sector}? Responde con un número.")
+    bot.register_next_step_handler(message, lambda m: generar_y_enviar_grafico(m, bot, valid_sectors[sector]))
+
+def generar_y_enviar_grafico(message, bot, sector):
+    """Genera y envía el gráfico del sector seleccionado según el número de meses indicado."""
     try:
         # Validar que el usuario ingresó un número
         meses = int(message.text.strip())
@@ -278,50 +309,49 @@ def generar_y_enviar_grafico(message, bot):
             bot.send_message(message.chat.id, "No se pudieron cargar los datos. Inténtalo más tarde.")
             return
 
-        generar_grafico_ipicorr(df, meses)  # Generar el gráfico
+        # Generar el gráfico del sector seleccionado
+        generar_grafico_ipicorr(df, sector, meses)
 
         # Enviar el gráfico al usuario
         with open('grafico_ipicorr.png', 'rb') as foto:
-            bot.send_photo(message.chat.id, foto, caption=f"Evolución del IPICORR - Últimos {meses} meses")
-        # Redirigir al usuario al menú principal de IPICORR después de mostrar el gráfico
-        bot.send_message(message.chat.id, "¿Hay algo más con lo que pueda ayudarte?")
+            bot.send_photo(message.chat.id, foto, caption=f"Evolución de {sector} - Últimos {meses} meses")
+    
         send_menu_ipicorr(bot, message)
 
     except ValueError:
-        bot.send_message(message.chat.id, "Por favor ingresa un número válido de meses.")
-        pedir_meses_grafico(bot, message)  # Volver a pedir el número de meses
+        bot.send_message(message.chat.id, "Por favor, ingresa un número válido de meses.")
+        bot.register_next_step_handler(message, lambda m: pedir_meses_grafico(m, bot))
     except Exception as e:
         bot.send_message(message.chat.id, f"Ocurrió un error inesperado: {str(e)}")
 
-
-def generar_grafico_ipicorr(df, meses):
-    """Genera un gráfico con la evolución del IPICORR para los últimos N meses y muestra los valores en los puntos."""
+def generar_grafico_ipicorr(df, sector, meses):
+    """Genera un gráfico con la evolución de un sector del IPICORR para los últimos N meses."""
     # Ordenar los datos por fecha y seleccionar los últimos 'meses' datos
     df = df.sort_values('Fecha').tail(meses)
 
     # Crear la figura y el gráfico
     plt.figure(figsize=(10, 6))
-    plt.plot(df['Fecha'], df['Var_Interanual_IPICORR'], marker='o', linestyle='-', color='b', label='IPICORR')
+    plt.plot(df['Fecha'], df[sector], marker='o', linestyle='-', label=sector)
 
     # Añadir valores en cada punto
     for i, row in df.iterrows():
-        plt.annotate(f"{row['Var_Interanual_IPICORR']:.1f}%", 
-                     (row['Fecha'], row['Var_Interanual_IPICORR']), 
+        plt.annotate(f"{row[sector]:.1f}%", 
+                     (row['Fecha'], row[sector]), 
                      textcoords="offset points", 
-                     xytext=(0, 10),  # Desplazamiento del texto
-                     ha='center')
+                     xytext=(0, 10), ha='center')
 
     # Configurar el título y las etiquetas
-    plt.title(f'Evolución del IPICORR - Últimos {meses} meses', fontsize=16)
+    plt.title(f'Evolución de {sector} - Últimos {meses} meses', fontsize=16)
     plt.xlabel('Fecha', fontsize=12)
     plt.ylabel('Variación Interanual (%)', fontsize=12)
     plt.grid(True)
-    plt.xticks(rotation=45)  # Rotar las etiquetas del eje X
-    plt.tight_layout()  # Ajustar el gráfico para evitar superposición
+    plt.xticks(rotation=45)
+    plt.tight_layout()
 
-    # Guardar la imagen
+    # Guardar el gráfico como imagen
     plt.savefig('grafico_ipicorr.png')
-    plt.close()  # Cerrar la figura para liberar memoria
+    plt.close()
+
 
 #----------------------Consulta personalizada----------------------
 def pedir_fecha_personalizada(bot, message):
