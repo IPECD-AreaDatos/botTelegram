@@ -65,6 +65,8 @@ def setup_handlers(bot):
             telebot.types.KeyboardButton(text="¿Que es IPI Nacion?"),
             telebot.types.KeyboardButton(text="Ultimo valor"),
             telebot.types.KeyboardButton(text="Ver Grafico"),
+            telebot.types.KeyboardButton(text="Consulta personalizada"),
+            telebot.types.KeyboardButton(text="Comparar por fechas"),
             telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
         )
         bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPI?", reply_markup=board)

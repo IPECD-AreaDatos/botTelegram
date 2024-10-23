@@ -356,7 +356,6 @@ def generar_grafico_ipicorr(df, sector, meses):
 #----------------------Consulta personalizada----------------------
 def pedir_fecha_personalizada(bot, message):
     """Solicita al usuario una fecha para la consulta personalizada."""
-    df = load_data()
     bot.send_message(message.chat.id, "¿Qué fecha deseas consultar? (ejemplo: marzo 2024)")
     bot.register_next_step_handler(message, lambda m: consultar_fecha_personalizada(m, bot))
 
