@@ -1,4 +1,4 @@
-name: Actualizacion automatico de los cambios del bot de Telegram
+name: Actualizacion automática de los cambios del bot de Telegram
 
 on:
   push:
@@ -21,14 +21,15 @@ jobs:
 
     # Verificar que la conexión SSH se realizó exitosamente.
     - name: Verify SSH connection
+      continue-on-error: true  # Si falla, no detiene el workflow
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
       run: |
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "echo 'Conexión exitosa a EC2'"
-    
+
     # Clonar o actualizar el repositorio en el servidor EC2
-    - name: Actualizacion del repositorio
+    - name: Actualización del repositorio
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
@@ -41,38 +42,23 @@ jobs:
             sudo mkdir -p '$DEPLOY_DIR'
             cd '$DEPLOY_DIR'
             sudo git clone '$REPO_URL' .
-            sudo chmod 777 -R '$DEPLOY_DIR'
+            sudo chmod 755 -R '$DEPLOY_DIR'
           else
             cd '$DEPLOY_DIR'
             sudo git reset --hard HEAD
             sudo git pull origin main
-            sudo chmod 777 -R '$DEPLOY_DIR'
-          fi"
+            sudo chmod 755 -R '$DEPLOY_DIR'
+          fi
+        "
 
-    # Verificar y reiniciar el bot si está en ejecución
-    - name: Verificar y reiniciar el bot de Telegram
+    # Reiniciar el servicio del bot de Telegram usando systemd
+    - name: Reiniciar el bot de Telegram con systemd
       env:
         EC2_IP: ${{ secrets.AWS_HOST }}
         EC2_USER: ${{ secrets.AWS_USER }}
-        DEPLOY_DIR: ${{ secrets.PATH_FOLDER }}
       run: |
         ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_IP "
-          set -e
-          cd '$DEPLOY_DIR'
-          
-          # Buscar el proceso del bot
-          BOT_PROCESS=\$(ps aux | grep 'bot_telegram' | grep -v grep || true)
-          
-          # Si está corriendo, matarlo
-          if [ ! -z \"\$BOT_PROCESS\" ]; then
-            echo 'Bot corriendo, deteniéndolo...'
-            pkill -f bot_telegram
-          fi
-
-          # Ejecutar nuevamente el bot
-          echo 'Iniciando bot de Telegram...'
-          nohup python3 src/main.py > bot.log 2>&1 &
+          sudo systemctl daemon-reload
+          sudo systemctl restart bot_telegram.service
+          sudo systemctl status bot_telegram.service
         "
-
-          
-        
