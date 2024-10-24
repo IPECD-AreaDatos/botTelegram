@@ -1,7 +1,7 @@
 # handlers.py
 from logic.bot_logic_ipicorr import resp_ipicorr
 from logic.bot_logic_ipi import resp_ipi_nacion
-from logic.bot_logic_censo import resp_censo
+from logic.bot_logic_censo import resp_censo_departamento
 import telebot
 from functools import partial
 
@@ -65,6 +65,8 @@ def setup_handlers(bot):
             telebot.types.KeyboardButton(text="¿Que es IPI Nacion?"),
             telebot.types.KeyboardButton(text="Ultimo valor"),
             telebot.types.KeyboardButton(text="Ver Grafico"),
+            telebot.types.KeyboardButton(text="Consulta personalizada"),
+            telebot.types.KeyboardButton(text="Comparar por fechas"),
             telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
         )
         bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPI?", reply_markup=board)
@@ -72,14 +74,38 @@ def setup_handlers(bot):
 
     # Menú de Censo
     def mostrar_menu_censo(bot, message):
-        board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        """Muestra el menú principal del censo con opciones claras y bien organizadas."""
+        # Crear el teclado con opciones
+        board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
         board.add(
-            telebot.types.KeyboardButton(text="Quiero saber mas"),
-            telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
+            telebot.types.KeyboardButton(text="Población Total en la Provincia"),
+            telebot.types.KeyboardButton(text="Población por Municipio"),
+            telebot.types.KeyboardButton(text="Variación de la Población"),
+            telebot.types.KeyboardButton(text="Peso de la Población"),
+            telebot.types.KeyboardButton(text="Quiero saber de otro tema")
         )
+
+        # Formatear el mensaje del menú
+        mensaje = (
+            "📋 *Bienvenido a la sección de Censo 2022*\n\n"
+            "🔎 Tenemos datos recolectados para la *provincia de Corrientes* "
+            "con información detallada sobre municipios y departamentos.\n\n"
+            "Selecciona una opción para obtener más información:\n"
+            "🌍 *Población Total en la Provincia*: Consulta el total de habitantes en toda la provincia.\n"
+            "👥 *Población por Municipio*: Consulta el número de habitantes por municipio.\n"
+            "📈 *Variación de la Población*: Compara la población entre los censos de 2010 y 2022.\n"
+            "⚖️ *Peso de la Población*: Muestra la proporción de cada municipio en la población total.\n"
+            "\n🔙 *Quiero saber de otro tema*: Vuelve al menú principal."
+        )
+
+        # Enviar el mensaje del menú con el teclado
         bot.send_message(
-            message.chat.id,
-            "Como dato de Censo tenemos datos recolectados en 2022 para la provincia de Corrientes.",
-            reply_markup=board
+            message.chat.id, 
+            mensaje, 
+            reply_markup=board, 
+            parse_mode="Markdown"
         )
-        bot.register_next_step_handler(message, partial(resp_censo, bot=bot))
+        # Registrar el siguiente paso para gestionar la respuesta del usuario
+        bot.register_next_step_handler(message, partial(resp_censo_departamento, bot=bot))
+
+
