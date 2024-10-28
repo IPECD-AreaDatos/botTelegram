@@ -86,7 +86,7 @@ def resp_censo_departamento(message, bot):
     elif opcion == "5-mapa de censo":
         bot.send_message(message.chat.id, "Para ver el mapa de censo, visita el siguiente enlace:\n https://censo.corrientes.gob.ar/#7/-28.082/-59.766")
         send_menu_censo(bot, message)
-    elif opcion == "6-Volver al menu principal":
+    elif opcion == "6-volver al menu principal":
         bot.send_message(message.chat.id, "Gracias por consultar sobre los datos del censo.")
         send_menu_principal(bot, message.chat.id)
     else:
