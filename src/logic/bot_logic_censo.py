@@ -143,7 +143,7 @@ def mostrar_datos_todos_municipios(bot, message, df, tipo):
 
 # ------------------- Mostrar Población Total -------------------
 def mostrar_total_poblacion(df, bot, message):
-    """Muestra la población total en todos los municipios con formato adecuado."""
+    """Muestra la población total en todos los municipios con formato adecuado.a"""
     # Configurar el locale para usar el formato español (con punto para miles)
     try:
         locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')  # Linux/MacOS
