@@ -69,7 +69,7 @@ def send_menu_ipicorr(bot, message):
     opciones = [
         "¿Que es IPICORR?", "Ultimo valor", "Ver variaciones(categorias)",
         "¿Cual es la tendencia en los ultimos años?", "Ver grafico",
-        "Consulta personalizada", "Quiero saber de otro tema"
+        "Consulta personalizada", "Volver al menu principal"
     ]
     for opcion in opciones:
         board.add(telebot.types.KeyboardButton(text=opcion))
@@ -128,7 +128,7 @@ def resp_ipicorr(message, bot):
         mostrar_menu_variaciones(bot, message)
 
     elif user_input == "¿cual es la tendencia en los ultimos años?":
-        mostrar_menu_tendencias(bot, message)
+        mostrar_tendencias(bot, message, df)
 
     elif user_input == "ver grafico":
         pedir_sector_grafico(bot, message)
@@ -136,7 +136,7 @@ def resp_ipicorr(message, bot):
     elif user_input == "consulta personalizada":
         pedir_fecha_personalizada(bot, message)
 
-    elif user_input == "quiero saber de otro tema":
+    elif user_input == "Volver al menu principal":
         bot.send_message(message.chat.id, "Gracias por consultar sobre IPICORR.")
         send_menu_principal(bot, message.chat.id)
     
@@ -201,63 +201,29 @@ def resp_ipicorr_variaciones(message, bot, df):
         bot.send_message(message.chat.id, "Opción no válida. Elige nuevamente.")
         mostrar_menu_variaciones(bot, message)  # Volvemos a mostrar el menú de variaciones
 
-#----------------------Tendencias----------------------
-def mostrar_menu_tendencias(bot, message):
-    """Muestra el menú para consultar tendencias por año."""
-    # Remover cualquier teclado anterior
-    hide_board = telebot.types.ReplyKeyboardRemove()
-    bot.send_message(message.chat.id, "Cargando menú de tendencias...", reply_markup=hide_board)
+# ------------------- Mostrar Tendencias de los Últimos Años -------------------
+def mostrar_tendencias(bot, message, df):
+    """Muestra las tendencias de los años 2022, 2023 y 2024 en un mensaje mejorado."""
+    
+    # Extraer los años de interés y calcular los promedios
+    años = [2022, 2023, 2024]
+    respuesta = "📊 *Tendencias de Variación Interanual de IPICORR*\n"
 
-    # Crear el nuevo teclado de tendencias
-    board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    board.add(
-        telebot.types.KeyboardButton(text="2022"),
-        telebot.types.KeyboardButton(text="2023"),
-        telebot.types.KeyboardButton(text="2024"),
-        telebot.types.KeyboardButton(text="Volver"),
-        telebot.types.KeyboardButton(text="Volver al menú principal")
-    )
+    for año in años:
+        datos_anuales = df[df['Fecha'].dt.year == año]
 
-    bot.send_message(message.chat.id, "¿De qué año deseas ver la tendencia?", reply_markup=board)
-    bot.register_next_step_handler(message, lambda m: resp_ipicorr_tendencias(m, bot, df_cache))
+        if not datos_anuales.empty:
+            promedio = datos_anuales['Var_Interanual_IPICORR'].mean()
+            emoji_tendencia = "📉" if promedio < 0 else "📈"
+            respuesta += f"{emoji_tendencia} *{año}*: {promedio:.1f}%\n"
+        else:
+            respuesta += f"⚠️ *{año}*: No hay datos disponibles\n"
 
-def resp_ipicorr_tendencias(message, bot, df):
-    """Responde con la tendencia anual para el año seleccionado."""
-    user_input = message.text.strip()
+    # Enviar la respuesta con todas las tendencias
+    bot.send_message(message.chat.id, respuesta, parse_mode="Markdown")
 
-    if user_input.isdigit() and int(user_input) in [2022, 2023, 2024]:
-        año = int(user_input)
-        respuesta = calcular_promedio_anual(df, año)
-        bot.send_message(message.chat.id, respuesta)
-
-        # Volvemos al menú de tendencias para seguir consultando
-        mostrar_menu_tendencias(bot, message)
-
-    elif user_input.lower() == "volver":
-        # Remover el teclado y regresar al menú IPICORR
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Volviendo al menú de IPICORR...", reply_markup=hide_board)
-        send_menu_ipicorr(bot, message)
-
-    elif user_input.lower() == "volver al menú principal":
-        # Remover el teclado y regresar al menú principal
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Volviendo al menú principal...", reply_markup=hide_board)
-        send_menu_principal(bot, message.chat.id)
-
-    else:
-        bot.send_message(message.chat.id, "Por favor selecciona un año válido.")
-        mostrar_menu_tendencias(bot, message)  # Mostrar el menú de nuevo
-
-def calcular_promedio_anual(df, año):
-    """Calcula el promedio de variaciones para un año completo."""
-    datos_anuales = df[df['Fecha'].dt.year == año]
-
-    if datos_anuales.empty:
-        return f"No hay datos disponibles para el año {año}."
-
-    promedio = datos_anuales['Var_Interanual_IPICORR'].mean()
-    return f"El promedio de variación interanual en {año} fue de {promedio:.1f}%."
+    # Regresar al menú principal de IPICORR
+    send_menu_ipicorr(bot, message)
 
 #----------------------Generacion de Graficos----------------------
 def pedir_sector_grafico(bot, message):

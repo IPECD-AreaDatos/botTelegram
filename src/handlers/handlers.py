@@ -53,7 +53,7 @@ def setup_handlers(bot):
             telebot.types.KeyboardButton(text="¿Cual es la tendencia en los ultimos años?"),
             telebot.types.KeyboardButton(text="Ver grafico"),
             telebot.types.KeyboardButton(text="Consulta personalizada"),
-            telebot.types.KeyboardButton(text="Quiero saber de otro tema")
+            telebot.types.KeyboardButton(text="Volver al menu principal")
         )
         bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPICORR?", reply_markup=board)
         bot.register_next_step_handler(message, partial(resp_ipicorr, bot=bot))
@@ -67,7 +67,7 @@ def setup_handlers(bot):
             telebot.types.KeyboardButton(text="Ver Grafico"),
             telebot.types.KeyboardButton(text="Consulta personalizada"),
             telebot.types.KeyboardButton(text="Comparar por fechas"),
-            telebot.types.KeyboardButton(text="Quiero saber de otro tema"),
+            telebot.types.KeyboardButton(text="Volver al menu principal"),
         )
         bot.send_message(message.chat.id, "¿Qué quieres saber sobre IPI?", reply_markup=board)
         bot.register_next_step_handler(message, partial(resp_ipi_nacion, bot=bot))
@@ -78,11 +78,12 @@ def setup_handlers(bot):
         # Crear el teclado con opciones
         board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
         board.add(
-            telebot.types.KeyboardButton(text="Población Total en la Provincia"),
-            telebot.types.KeyboardButton(text="Población por Municipio"),
-            telebot.types.KeyboardButton(text="Variación de la Población"),
-            telebot.types.KeyboardButton(text="Peso de la Población"),
-            telebot.types.KeyboardButton(text="Quiero saber de otro tema")
+            telebot.types.KeyboardButton(text="1-Población Total en la Provincia"),
+            telebot.types.KeyboardButton(text="2-Población por Municipio"),
+            telebot.types.KeyboardButton(text="3-Variación de la Población"),
+            telebot.types.KeyboardButton(text="4-Peso de la Población"),
+            telebot.types.KeyboardButton(text="5-Mapa de Censo"),
+            telebot.types.KeyboardButton(text="6-Volver al menu principal")
         )
 
         # Formatear el mensaje del menú
@@ -91,11 +92,12 @@ def setup_handlers(bot):
             "🔎 Tenemos datos recolectados para la *provincia de Corrientes* "
             "con información detallada sobre municipios y departamentos.\n\n"
             "Selecciona una opción para obtener más información:\n"
-            "🌍 *Población Total en la Provincia*: Consulta el total de habitantes en toda la provincia.\n"
-            "👥 *Población por Municipio*: Consulta el número de habitantes por municipio.\n"
-            "📈 *Variación de la Población*: Compara la población entre los censos de 2010 y 2022.\n"
-            "⚖️ *Peso de la Población*: Muestra la proporción de cada municipio en la población total.\n"
-            "\n🔙 *Quiero saber de otro tema*: Vuelve al menú principal."
+            "🌍 1-*Población Total en la Provincia*: Consulta el total de habitantes en toda la provincia.\n"
+            "👥 2-*Población por Municipio*: Consulta el número de habitantes por municipio.\n"
+            "📈 3-*Variación de la Población*: Compara la población entre los censos de 2010 y 2022.\n"
+            "⚖️ 4-*Peso de la Población*: Muestra la proporción de cada municipio en la población total.\n"
+            "🗺️ 5-*Mapa de Censo*: Enlace al mapa de censo de Corrientes.\n"
+            "\n🔙 6-*Volver al menu principal*: Vuelve al menú principal."
         )
 
         # Enviar el mensaje del menú con el teclado

@@ -81,7 +81,7 @@ def send_menu_ipi_nacion(bot, message):
     board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     opciones = [
         "¿Que es IPI Nacion?", "Ultimo valor", "Ver grafico", 
-        "Consulta personalizada", "Comparar por fechas", "Quiero saber de otro tema"
+        "Consulta personalizada", "Comparar por fechas", "Volver al menu principal"
     ]
     for opcion in opciones:
         board.add(telebot.types.KeyboardButton(text=opcion))
@@ -127,7 +127,7 @@ def resp_ipi_nacion(message, bot):
         pedir_fecha_personalizada(bot, message)
     elif user_input == "comparar por fechas":
         pedir_fechas_comparacion(bot, message)
-    elif user_input == "quiero saber de otro tema":
+    elif user_input == "Volver al menu principal":
         bot.send_message(message.chat.id, "Gracias por consultar sobre IPI Nacion.")
         send_menu_principal(bot, message.chat.id)
     else:
