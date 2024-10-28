@@ -42,7 +42,6 @@ def read_data_censo_municipios():
     return df_cache_municipios
 
 # ------------------- Generar Teclado de Municipios -------------------
-# ------------------- Generar Teclado de Municipios -------------------
 def generar_teclado_municipios(df):
     """Genera un teclado con los nombres de los municipios en orden alfabético, excluyendo valores inválidos."""
     board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
@@ -71,11 +70,11 @@ def send_menu_censo(bot, message):
     message_text = (
         "📊 *Información sobre los Departamentos y Municipios*\n"
         "Por favor selecciona la información que deseas conocer:\n\n"
-        "👥 *Población Total en la Provincia*: Muestra la cantidad total de habitantes en Corrientes.\n"
-        "🏘️ *Población por Municipio*: Muestra la población total de un municipio específico.\n"
-        "📊 *Variación de la Población*: Comparación de población entre 2010 y 2022.\n"
-        "⚖️ *Peso de la Población*: Muestra la proporción de la población en relación al total.\n"
-        "\n🔙 *Quiero saber de otro tema*: Para regresar a la pantalla principal."
+        "👥 *1-Población Total en la Provincia*: Muestra la cantidad total de habitantes en Corrientes.\n"
+        "🏘️ *2-Población por Municipio*: Muestra la población total de un municipio específico.\n"
+        "📊 *3-Variación de la Población*: Comparación de población entre 2010 y 2022.\n"
+        "⚖️ *4-Peso de la Población*: Muestra la proporción de la población en relación al total.\n"
+        "\n🔙 *5-Quiero saber de otro tema*: Para regresar a la pantalla principal."
     )
     bot.send_message(message.chat.id, message_text, reply_markup=board, parse_mode="Markdown")
     bot.register_next_step_handler(message, lambda m: resp_censo_departamento(m, bot))
@@ -90,11 +89,11 @@ def resp_censo_departamento(message, bot):
     if opcion == "población total en la provincia":
         mostrar_total_poblacion(df, bot, message)  # Nuevo flujo más claro
     elif opcion == "población por municipio":
-        ver_poblacion_por_municipio(bot, message, df)
+        mostrar_datos_todos_municipios(bot, message, df, "población")
     elif opcion == "variación de la población":
-        ver_variacion_por_municipio(bot, message, df)
+        mostrar_datos_todos_municipios(bot, message, df, "variación")
     elif opcion == "peso de la población":
-        ver_peso_por_municipio(bot, message, df)
+        mostrar_datos_todos_municipios(bot, message, df, "peso")
     elif opcion == "quiero saber de otro tema":
         bot.send_message(message.chat.id, "Gracias por consultar sobre los datos del censo.")
         send_menu_principal(bot, message.chat.id)
@@ -105,16 +104,10 @@ def resp_censo_departamento(message, bot):
 
 
 # ------------------- RESPUESTAS DEL BOT -------------------
-# ------------------- Mostrar Datos del Municipio -------------------
-def mostrar_datos_municipio(message, bot, df, tipo):
-    """Muestra los datos del municipio seleccionado."""
-    municipio = message.text.strip()
-    datos = df[df['municipio'].str.lower() == municipio.lower()]
-
-    if datos.empty:
-        bot.send_message(message.chat.id, f"⚠️ No se encontraron datos para el municipio: {municipio}.")
-        send_menu_censo(bot, message)  # Regresar al menú
-        return
+# ------------------- Mostrar Datos de Todos los Municipios -------------------
+def mostrar_datos_todos_municipios(bot, message, df, tipo):
+    """Muestra los datos de todos los municipios ordenados alfabéticamente."""
+    municipios = df.sort_values('municipio')  # Ordenar alfabéticamente por municipio
 
     # Configurar locale para el formato de números español
     try:
@@ -122,25 +115,32 @@ def mostrar_datos_municipio(message, bot, df, tipo):
     except locale.Error:
         locale.setlocale(locale.LC_ALL, 'Spanish_Spain')  # Windows
 
-    if tipo == "poblacion":
-        poblacion = datos['poblacion_viv_part_2022'].values[0]
-        poblacion_modificada = locale.format_string('%d', poblacion, grouping=True)
-        mensaje = (
-            f"🏘️ *Población Total en {municipio}*:\n"
-            f"{poblacion_modificada} habitantes (2022).\n"
-        )
-    elif tipo == "variacion":
-        variacion = datos['var_abs_poblacion_2010_vs_2022'].values[0]
-        variacion_modificada = locale.format_string('%d', variacion, grouping=True)
-        mensaje = (
-            f"📊 *Variación Poblacional en {municipio}*:\n"
-            f"{variacion_modificada} habitantes entre 2010 y 2022.\n"
-        )
+    mensajes = []  # Lista para almacenar los mensajes generados
 
-    bot.send_message(message.chat.id, mensaje, parse_mode="Markdown")
-    send_menu_censo(bot, message)  # Regresar al menú
+    # Recorrer cada fila del DataFrame para generar el mensaje correspondiente
+    for _, row in municipios.iterrows():
+        municipio = row['municipio']
 
-# ------------------- Mostrar Población Total -------------------
+        if tipo == "poblacion":
+            poblacion = locale.format_string('%d', row['poblacion_viv_part_2022'], grouping=True)
+            mensaje = f"🏘️ *{municipio}*: {poblacion} habitantes (2022).\n"
+        elif tipo == "variacion":
+            variacion = locale.format_string('%d', row['var_abs_poblacion_2010_vs_2022'], grouping=True)
+            mensaje = f"📊 *{municipio}*: Variación de {variacion} habitantes entre 2010 y 2022.\n"
+        elif tipo == "peso":
+            peso_relativo = row['peso_relativo_2022']
+            mensaje = f"⚖️ *{municipio}*: {peso_relativo:.2f}% del total de la población.\n"
+
+        mensajes.append(mensaje)  # Agregar mensaje a la lista
+
+    # Enviar los mensajes en bloques para evitar exceder el límite de 4096 caracteres
+    mensaje_completo = "".join(mensajes)
+    for i in range(0, len(mensaje_completo), 4096):  # Telegram permite máximo 4096 caracteres por mensaje
+        bot.send_message(message.chat.id, mensaje_completo[i:i+4096], parse_mode="Markdown")
+
+    # Volver al menú principal después de mostrar los datos
+    send_menu_censo(bot, message)
+
 # ------------------- Mostrar Población Total -------------------
 def mostrar_total_poblacion(df, bot, message):
     """Muestra la población total en todos los municipios con formato adecuado."""
@@ -166,10 +166,10 @@ def mostrar_total_poblacion(df, bot, message):
     # Volver al menú principal del censo
     send_menu_censo(bot, message)
 
-
+"""
 # ------------------- Opción: Ver Población por Municipio -------------------
 def ver_poblacion_por_municipio(bot, message, df):
-    """Solicita al usuario seleccionar un municipio para ver su población."""
+    Solicita al usuario seleccionar un municipio para ver su población.
     board = generar_teclado_municipios(df)
     bot.send_message(
         message.chat.id, 
@@ -179,11 +179,9 @@ def ver_poblacion_por_municipio(bot, message, df):
     )
     bot.register_next_step_handler(message, lambda m: mostrar_datos_municipio(m, bot, df, "poblacion"))
 
-
-
 # ------------------- Ver Variación de Población -------------------
 def ver_variacion_por_municipio(bot, message, df):
-    """Solicita un municipio para mostrar la variación de la población."""
+    Solicita un municipio para mostrar la variación de la población.
     board = generar_teclado_municipios(df)
     bot.send_message(
         message.chat.id, 
@@ -196,11 +194,11 @@ def ver_variacion_por_municipio(bot, message, df):
 
 # ------------------- Ver Peso Relativo de Población -------------------
 def ver_peso_por_municipio(bot, message, df):
-    """Solicita un municipio para mostrar el peso relativo de la población."""
+    Solicita un municipio para mostrar el peso relativo de la población.
     board = generar_teclado_municipios(df)
     bot.send_message(
         message.chat.id, 
         "Selecciona un municipio para ver su peso relativo:", 
         reply_markup=board
     )
-    bot.register_next_step_handler(message, lambda m: mostrar_datos_municipio(m, bot, df, "peso"))
+    bot.register_next_step_handler(message, lambda m: mostrar_datos_municipio(m, bot, df, "peso"))"""
