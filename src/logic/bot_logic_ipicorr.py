@@ -125,7 +125,7 @@ def resp_ipicorr(message, bot):
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
     elif user_input == "ver variaciones(categorias)":
-        mostrar_menu_variaciones(bot, message)
+        mostrar_variaciones_interanuales(bot, message, df)
 
     elif user_input == "¿cual es la tendencia en los ultimos años?":
         mostrar_tendencias(bot, message, df)
@@ -136,7 +136,7 @@ def resp_ipicorr(message, bot):
     elif user_input == "consulta personalizada":
         pedir_fecha_personalizada(bot, message)
 
-    elif user_input == "Volver al menu principal":
+    elif user_input == "volver al menu principal":
         bot.send_message(message.chat.id, "Gracias por consultar sobre IPICORR.")
         send_menu_principal(bot, message.chat.id)
     
@@ -144,62 +144,38 @@ def resp_ipicorr(message, bot):
         bot.send_message(message.chat.id, "Opción no válida. Elige nuevamente.")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
-#----------------------Variaciones----------------------
-def mostrar_menu_variaciones(bot, message):
-    """Muestra el menú de variaciones interanuales."""
-    # Remover cualquier teclado anterior
-    hide_board = telebot.types.ReplyKeyboardRemove()
-    bot.send_message(message.chat.id, "Cargando variaciones...", reply_markup=hide_board)
-
-    # Crear el nuevo teclado para las variaciones
-    board = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    opciones = [
-        "Interanual IPICORR", "Interanual Alimentos", "Interanual Textil",
-        "Interanual Maderas", "Interanual Minerales No Metalicos", 
-        "Interanual Metales", "Volver", "Volver al menú principal"
-    ]
-    for opcion in opciones:
-        board.add(telebot.types.KeyboardButton(text=opcion))
-
-    bot.send_message(message.chat.id, "¿Qué variación deseas consultar?", reply_markup=board)
-    bot.register_next_step_handler(message, lambda m: resp_ipicorr_variaciones(m, bot, df_cache))
-
-def resp_ipicorr_variaciones(message, bot, df):
-    """Maneja las respuestas de variaciones."""
-    user_input = message.text.lower().strip()
+# ---------------------- Variaciones ----------------------
+def mostrar_variaciones_interanuales(bot, message, df):
+    """Muestra todas las variaciones interanuales en un solo mensaje."""
+    
+    # Definir las variaciones a mostrar con sus nombres legibles
     variaciones = {
-        "interanual ipicorr": "Var_Interanual_IPICORR",
-        "interanual alimentos": "Var_Interanual_Alimentos",
-        "interanual textil": "Var_Interanual_Textil",
-        "interanual maderas": "Var_Interanual_Maderas",
-        "interanual minerales no metalicos": "Var_Interanual_MinNoMetalicos",
-        "interanual metales": "Var_Interanual_Metales"
+        "IPICORR": "Var_Interanual_IPICORR",
+        "Alimentos": "Var_Interanual_Alimentos",
+        "Textil": "Var_Interanual_Textil",
+        "Maderas": "Var_Interanual_Maderas",
+        "Minerales No Metálicos": "Var_Interanual_MinNoMetalicos",
+        "Metales": "Var_Interanual_Metales"
     }
 
-    if user_input in variaciones:
-        last_value = df[variaciones[user_input]].iloc[-1]
-        fecha_texto = df['Fecha'].iloc[-1].strftime('%B %Y')
-        bot.send_message(
-            message.chat.id, 
-            f"El último valor de {user_input} es: {last_value:.1f}% correspondiente a {fecha_texto}"
-        )
-        # Volvemos a mostrar el menú de variaciones
-        mostrar_menu_variaciones(bot, message)
+    # Obtener la última fecha disponible en el DataFrame
+    fecha_texto = df['Fecha'].iloc[-1].strftime('%B %Y')
 
-    elif user_input == "volver":
-        # Remover teclado y enviar el menú principal de IPICORR
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Volviendo al menú de IPICORR...", reply_markup=hide_board)
-        send_menu_ipicorr(bot, message)  # Volvemos al menú principal de IPICORR
+    # Crear el mensaje con todas las variaciones interanuales
+    mensaje = f"📊 *Variaciones Interanuales - {fecha_texto}*\n"
+    mensaje += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
 
-    elif user_input == "volver al menú principal":
-        hide_board = telebot.types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, "Volviendo al menú principal...", reply_markup=hide_board)
-        send_menu_principal(bot, message.chat.id)  # Volvemos al menú principal
+    for nombre, columna in variaciones.items():
+        valor = df[columna].iloc[-1]  # Obtener el último valor de cada variación
+        mensaje += f"- {nombre}: {valor:.1f}%\n"
 
-    else:
-        bot.send_message(message.chat.id, "Opción no válida. Elige nuevamente.")
-        mostrar_menu_variaciones(bot, message)  # Volvemos a mostrar el menú de variaciones
+    mensaje += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Enviar el mensaje con las variaciones interanuales
+    bot.send_message(message.chat.id, mensaje, parse_mode="Markdown")
+
+    # Volver al menú principal de IPICORR
+    send_menu_ipicorr(bot, message)
 
 # ------------------- Mostrar Tendencias de los Últimos Años -------------------
 def mostrar_tendencias(bot, message, df):
@@ -232,18 +208,29 @@ def pedir_sector_grafico(bot, message):
     board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     opciones = [
         "Interanual IPICORR", "Alimentos", "Textil", 
-        "Maderas", "Minerales No Metalicos", "Metales"
+        "Maderas", "Minerales No Metalicos", "Metales", 
+        "Volver"
     ]
     for opcion in opciones:
         board.add(telebot.types.KeyboardButton(text=opcion))
 
-    bot.send_message(message.chat.id, "¿Qué sector del IPICORR quieres graficar?", reply_markup=board)
+    bot.send_message(
+        message.chat.id, 
+        "¿Qué sector del IPICORR quieres graficar? (Escribe 'Volver' para regresar al menú anterior)",
+        reply_markup=board
+    )
     bot.register_next_step_handler(message, lambda m: pedir_meses_grafico(m, bot))
+
 
 def pedir_meses_grafico(message, bot):
     """Solicita al usuario el número de meses para el gráfico del sector seleccionado."""
-    # Guardar el sector seleccionado por el usuario
     sector = message.text.lower().strip()
+
+    # Validar si el usuario seleccionó "Volver"
+    if sector == "volver":
+        send_menu_ipicorr(bot, message)  # Regresar al menú de IPICORR
+        return
+
     valid_sectors = {
         "interanual ipicorr": "Var_Interanual_IPICORR",
         "alimentos": "Var_Interanual_Alimentos",
@@ -259,13 +246,21 @@ def pedir_meses_grafico(message, bot):
         return
 
     # Enviar al siguiente paso con el sector seleccionado
-    bot.send_message(message.chat.id, f"¿Cuántos meses quieres mostrar para {sector}? Responde con un número.")
+    bot.send_message(
+        message.chat.id, 
+        f"¿Cuántos meses quieres mostrar para {sector.capitalize()}? (Escribe 'Volver' para regresar)",
+    )
     bot.register_next_step_handler(message, lambda m: generar_y_enviar_grafico(m, bot, valid_sectors[sector]))
 
 def generar_y_enviar_grafico(message, bot, sector):
     """Genera y envía el gráfico del sector seleccionado según el número de meses indicado."""
     try:
-        # Validar que el usuario ingresó un número
+        # Validar si el usuario seleccionó "Volver"
+        if message.text.strip().lower() == "volver":
+            pedir_sector_grafico(bot, message)  # Regresar al menú de sectores
+            return
+
+        # Validar que el usuario ingresó un número de meses válido
         meses = int(message.text.strip())
         if meses <= 0:
             raise ValueError("El número de meses debe ser mayor que 0.")
@@ -280,13 +275,17 @@ def generar_y_enviar_grafico(message, bot, sector):
 
         # Enviar el gráfico al usuario
         with open('grafico_ipicorr.png', 'rb') as foto:
-            bot.send_photo(message.chat.id, foto, caption=f"Evolución de {sector} - Últimos {meses} meses")
+            bot.send_photo(
+                message.chat.id, 
+                foto, 
+                caption=f"Evolución de {sector} - Últimos {meses} meses"
+            )
     
         send_menu_ipicorr(bot, message)
 
     except ValueError:
         bot.send_message(message.chat.id, "Por favor, ingresa un número válido de meses.")
-        bot.register_next_step_handler(message, lambda m: pedir_meses_grafico(m, bot))
+        bot.register_next_step_handler(message, lambda m: generar_y_enviar_grafico(m, bot, sector))
     except Exception as e:
         bot.send_message(message.chat.id, f"Ocurrió un error inesperado: {str(e)}")
 
@@ -301,10 +300,12 @@ def generar_grafico_ipicorr(df, sector, meses):
 
     # Añadir valores en cada punto
     for i, row in df.iterrows():
-        plt.annotate(f"{row[sector]:.1f}%", 
-                     (row['Fecha'], row[sector]), 
-                     textcoords="offset points", 
-                     xytext=(0, 10), ha='center')
+        plt.annotate(
+            f"{row[sector]:.1f}%", 
+            (row['Fecha'], row[sector]), 
+            textcoords="offset points", 
+            xytext=(0, 10), ha='center'
+        )
 
     # Configurar el título y las etiquetas
     plt.title(f'Evolución de {sector} - Últimos {meses} meses', fontsize=16)
@@ -318,39 +319,52 @@ def generar_grafico_ipicorr(df, sector, meses):
     plt.savefig('grafico_ipicorr.png')
     plt.close()
 
-
 #----------------------Consulta personalizada----------------------
 def pedir_fecha_personalizada(bot, message):
     """Solicita al usuario una fecha para la consulta personalizada."""
-    bot.send_message(message.chat.id, "¿Qué fecha deseas consultar? (ejemplo: marzo 2024)")
+    # Eliminar cualquier teclado anterior
+    hide_board = telebot.types.ReplyKeyboardRemove()
+    
+    # Mostrar mensaje con instrucción y opción para volver
+    bot.send_message(
+        message.chat.id, 
+        "¿Qué fecha deseas consultar? (ejemplo: marzo 2024)\n\nEscribe *'Volver'* para regresar al menú anterior.",
+        reply_markup=hide_board,
+        parse_mode="Markdown"
+    )
     bot.register_next_step_handler(message, lambda m: consultar_fecha_personalizada(m, bot))
 
 def consultar_fecha_personalizada(message, bot):
     """Consulta el valor de IPICORR para la fecha proporcionada por el usuario."""
-    fecha_texto = message.text.strip()
-    df = load_data()
+    fecha_texto = message.text.strip().lower()
 
+    # Verificar si el usuario eligió volver
+    if fecha_texto == "volver":
+        send_menu_ipicorr(bot, message)  # Regresar al menú de IPICORR
+        return
+
+    df = load_data()
     if df is None:
         bot.send_message(message.chat.id, "No se pudieron cargar los datos. Inténtalo más tarde.")
         return
 
+    # Intentar encontrar la fecha solicitada
     respuesta = buscar_valor_por_fecha(df, fecha_texto)
     bot.send_message(message.chat.id, respuesta)
 
-    # Si la fecha no es válida, volvemos a preguntar
+    # Si la fecha no es válida o no hay datos, volver a preguntar
     if "no tiene un formato válido" in respuesta or "No se encontraron datos" in respuesta:
-        bot.send_message(message.chat.id, "Intenta con otra fecha. Ejemplo: marzo 2024")
+        bot.send_message(message.chat.id, "Intenta con otra fecha. Ejemplo: marzo 2024\nEscribe *'Volver'* para regresar al menú.", parse_mode="Markdown")
         bot.register_next_step_handler(message, lambda m: consultar_fecha_personalizada(m, bot))
     else:
-        # Confirmación opcional si la consulta fue exitosa
+        # Si la consulta fue exitosa, regresar al menú principal de IPICORR
         send_menu_ipicorr(bot, message)
 
 def buscar_valor_por_fecha(df, fecha_texto):
     """Busca el valor de IPICORR para una fecha específica proporcionada por el usuario."""
     try:
         # Normalizar la entrada del usuario
-        fecha_texto = fecha_texto.strip().lower()
-        fecha_texto = fecha_texto.capitalize()  # Asegurar que el mes esté capitalizado
+        fecha_texto = fecha_texto.strip().capitalize()  # Asegurar que el mes esté capitalizado
 
         # Convertir la fecha ingresada a datetime
         fecha = pd.to_datetime(fecha_texto, format='%B %Y', errors='coerce')
@@ -368,6 +382,3 @@ def buscar_valor_por_fecha(df, fecha_texto):
         return f"El valor de IPICORR en {fecha_texto} fue de {valor:.1f}%."
     except Exception as e:
         return f"Ocurrió un error: {str(e)}"
-
-
-

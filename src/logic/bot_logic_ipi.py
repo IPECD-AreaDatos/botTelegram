@@ -127,7 +127,7 @@ def resp_ipi_nacion(message, bot):
         pedir_fecha_personalizada(bot, message)
     elif user_input == "comparar por fechas":
         pedir_fechas_comparacion(bot, message)
-    elif user_input == "Volver al menu principal":
+    elif user_input == "volver al menu principal":
         bot.send_message(message.chat.id, "Gracias por consultar sobre IPI Nacion.")
         send_menu_principal(bot, message.chat.id)
     else:
@@ -162,6 +162,7 @@ def ultimo_valor_ipi(df, bot, message):
     bot.send_message(message.chat.id, mensaje)
     send_menu_ipi_nacion(bot, message)
 # ------------------- Generación de Gráficos -------------------
+# ------------------- Generación de Gráficos -------------------
 def pedir_sector_ipi(bot, message):
     """Solicita al usuario que seleccione el sector del IPI para graficar."""
     board = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
@@ -172,7 +173,11 @@ def pedir_sector_ipi(bot, message):
     for sector in sectores:
         board.add(telebot.types.KeyboardButton(text=sector))
 
-    bot.send_message(message.chat.id, "¿Qué sector del IPI Nación quieres graficar?", reply_markup=board)
+    bot.send_message(
+        message.chat.id, 
+        "¿Qué sector del IPI Nación quieres graficar? (Escribe 'Volver' para regresar al menú principal)", 
+        reply_markup=board
+    )
     bot.register_next_step_handler(message, lambda m: pedir_meses_ipi(m, bot, m.text))
 
 def pedir_meses_ipi(message, bot, sector):
@@ -189,17 +194,30 @@ def pedir_meses_ipi(message, bot, sector):
 
     sector_key = sector.lower().strip()
 
+    if sector_key == "volver":
+        send_menu_ipi_nacion(bot, message)  # Regresar al menú principal
+        return
+
     if sector_key not in valid_sectors:
         bot.send_message(message.chat.id, "Sector no válido. Por favor selecciona uno de la lista.")
         pedir_sector_ipi(bot, message)
         return
 
-    bot.send_message(message.chat.id, f"¿Cuántos meses quieres mostrar para {sector}? Ingrese solo el numero")
+    bot.send_message(
+        message.chat.id, 
+        f"¿Cuántos meses quieres mostrar para {sector}? Ingrese solo el número. (Escribe 'Volver' para regresar al menú anterior)"
+    )
     bot.register_next_step_handler(message, lambda m: generar_y_enviar_grafico_ipi(m, bot, valid_sectors[sector_key]))
 
 def generar_y_enviar_grafico_ipi(message, bot, sector):
     """Genera y envía el gráfico del sector seleccionado."""
     try:
+        # Verificar si el usuario eligió "Volver"
+        if message.text.strip().lower() == "volver":
+            pedir_sector_ipi(bot, message)  # Regresar a la selección de sector
+            return
+
+        # Validar que el usuario ingresó un número válido de meses
         meses = int(message.text.strip())
         if meses <= 0:
             raise ValueError("El número de meses debe ser mayor que 0.")
@@ -207,49 +225,80 @@ def generar_y_enviar_grafico_ipi(message, bot, sector):
         df = read_data_ipi()
         generar_grafico_ipi(df, sector, meses)
 
+        # Enviar el gráfico al usuario
         with open('grafico_ipi.png', 'rb') as foto:
-            bot.send_photo(message.chat.id, foto, caption=f"Evolución de {sector} - Últimos {meses} meses")
+            bot.send_photo(
+                message.chat.id, 
+                foto, 
+                caption=f"Evolución de {sector} - Últimos {meses} meses"
+            )
         send_menu_ipi_nacion(bot, message)
 
     except ValueError:
         bot.send_message(message.chat.id, "Por favor, ingresa un número válido.")
-        pedir_meses_ipi(bot, message, sector)
+        bot.register_next_step_handler(message, lambda m: generar_y_enviar_grafico_ipi(m, bot, sector))
+    except Exception as e:
+        bot.send_message(message.chat.id, f"Ocurrió un error inesperado: {str(e)}")
 
 def generar_grafico_ipi(df, sector, meses):
     """Genera el gráfico del sector seleccionado con las variaciones mensuales."""
+    # Ordenar los datos por fecha y seleccionar los últimos 'meses' datos
     df = df.sort_values('fecha').tail(meses)
+
+    # Crear la figura y el gráfico
     plt.figure(figsize=(10, 6))
     plt.plot(df['fecha'], df[sector], marker='o', linestyle='-', label=sector)
+
+    # Añadir valores en cada punto
     for i, row in df.iterrows():
-        plt.annotate(f"{row[sector]:.1f}%", (row['fecha'], row[sector]), textcoords="offset points", xytext=(0, 10), ha='center')
+        plt.annotate(
+            f"{row[sector]:.1f}%", 
+            (row['fecha'], row[sector]), 
+            textcoords="offset points", 
+            xytext=(0, 10), ha='center'
+        )
+
+    # Configurar el título y las etiquetas
     plt.title(f'Evolución de {sector} (variación mensual)', fontsize=16)
     plt.xlabel('Fecha')
     plt.ylabel('Variación (%)')
     plt.grid(True)
     plt.xticks(rotation=45)
     plt.tight_layout()
+
+    # Guardar el gráfico como imagen
     plt.savefig('grafico_ipi.png')
     plt.close()
+
 
 # ------------------ CONSULTA PERSONALIZADA ------------------
 def pedir_fecha_personalizada(bot, message):
     """Solicita al usuario una fecha para la consulta personalizada."""
     bot.send_message(
         message.chat.id, 
-        "¿Qué fecha deseas consultar? (Ejemplo: marzo 2023)"
+        "¿Qué fecha deseas consultar? (Ejemplo: marzo 2023)\n\nEscribe *'Volver'* para regresar al menú anterior.",
+        parse_mode="Markdown"
     )
     bot.register_next_step_handler(message, lambda m: consultar_fecha_ipi(m, bot))
 
 def consultar_fecha_ipi(message, bot):
     """Consulta y muestra las variaciones para la fecha proporcionada."""
     try:
-        # Convertir el texto ingresado a una fecha
-        fecha_usuario = convertir_a_fecha(message.text.strip())
+        texto_usuario = message.text.strip().lower()
+
+        # Verificar si el usuario eligió volver
+        if texto_usuario == "volver":
+            send_menu_ipi_nacion(bot, message)  # Regresar al menú principal
+            return
+
+        # Intentar convertir el texto ingresado en una fecha válida
+        fecha_usuario = convertir_a_fecha(texto_usuario)
 
         if fecha_usuario is None:
             bot.send_message(
                 message.chat.id, 
-                "Fecha inválida. Usa el formato 'mes año'. Ejemplo: marzo 2023."
+                "Fecha inválida. Usa el formato 'mes año'. Ejemplo: marzo 2023.\nEscribe *'Volver'* para regresar al menú.",
+                parse_mode="Markdown"
             )
             pedir_fecha_personalizada(bot, message)  # Volver a pedir la fecha
             return
@@ -261,12 +310,13 @@ def consultar_fecha_ipi(message, bot):
         if registro.empty:
             bot.send_message(
                 message.chat.id, 
-                f"No se encontraron datos para la fecha {message.text.strip()}."
+                f"No se encontraron datos para la fecha {message.text.strip()}.\nEscribe *'Volver'* para regresar al menú.",
+                parse_mode="Markdown"
             )
             pedir_fecha_personalizada(bot, message)  # Volver a pedir la fecha
             return
 
-        # Mostrar los valores de esa fecha
+        # Mostrar los resultados de esa fecha
         mostrar_resultados_fecha(bot, message, registro.iloc[0])
 
     except Exception as e:
@@ -278,7 +328,7 @@ def convertir_a_fecha(texto):
         # Normalizar el texto eliminando tildes y espacios innecesarios
         texto = unidecode.unidecode(texto.strip().lower())
         mes, año = texto.split()
-        
+
         # Crear una lista de meses sin tildes
         meses_es = [unidecode.unidecode(m.lower()) for m in calendar.month_name if m]
 
@@ -298,9 +348,9 @@ def mostrar_resultados_fecha(bot, message, registro):
     """Muestra los resultados de la fecha seleccionada."""
     fecha = registro['fecha']
     mensaje = (
-        f"📅 Resultados del IPI Nacional para {get_fecha_en_espanol(fecha)} 📅\n"
+        f"📅 *Resultados del IPI Nacional para {get_fecha_en_espanol(fecha)}* 📅\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔍 Variaciones Mensuales\n"
+        f"🔍 *Variaciones Mensuales*\n"
         f"- 🏭 IPI Manufacturero: {registro['var_mensual_ipi_manufacturero']:.1f}%\n"
         f"- 🥦 Alimentos: {registro['var_mensual_alimentos']:.1f}%\n"
         f"- 👗 Textil: {registro['var_mensual_textil']:.1f}%\n"
@@ -309,7 +359,7 @@ def mostrar_resultados_fecha(bot, message, registro):
         f"- ⛏️ Minerales no metálicos: {registro['var_mensual_min_no_metalicos']:.1f}%\n"
         f"- 🔧 Metales: {registro['var_mensual_min_metales']:.1f}%\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📊 Variaciones Anuales\n"
+        f"📊 *Variaciones Anuales*\n"
         f"- 🏭 IPI Manufacturero: {registro['anual_var_mensual_ipi_manufacturero']:.1f}%\n"
         f"- 🥦 Alimentos: {registro['anual_var_mensual_alimentos']:.1f}%\n"
         f"- 👗 Textil: {registro['anual_var_mensual_textil']:.1f}%\n"
@@ -319,34 +369,61 @@ def mostrar_resultados_fecha(bot, message, registro):
         f"- 🔧 Metales: {registro['anual_var_mensual_min_metales']:.1f}%\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
     )
-    bot.send_message(message.chat.id, mensaje)
+    bot.send_message(message.chat.id, mensaje, parse_mode="Markdown")
     send_menu_ipi_nacion(bot, message)  # Volver al menú principal
+
 
 # ------------------- Comparar por fechas -------------------
 def pedir_fechas_comparacion(bot, message):
     """Solicita al usuario las dos fechas para comparar."""
-    bot.send_message(message.chat.id, "Por favor, ingresa la primera fecha (Ejemplo: marzo 2023)")
+    bot.send_message(
+        message.chat.id, 
+        "Por favor, ingresa la primera fecha (Ejemplo: marzo 2023).\nEscribe 'Volver' para regresar al menú anterior."
+    )
     bot.register_next_step_handler(message, lambda m: obtener_fecha_comparacion_1(m, bot))
 
 def obtener_fecha_comparacion_1(message, bot):
     """Guarda la primera fecha y pide la segunda."""
-    fecha_1 = convertir_a_fecha(message.text.strip())
+    texto_usuario = message.text.strip().lower()
 
-    if fecha_1 is None:
-        bot.send_message(message.chat.id, "Fecha inválida. Usa el formato 'mes año'. Ejemplo: marzo 2023.")
-        pedir_fechas_comparacion(bot, message)  # Volver a pedir la fecha
+    # Verificar si el usuario quiere volver
+    if texto_usuario == "volver":
+        send_menu_ipi_nacion(bot, message)  # Regresar al menú principal
         return
 
-    bot.send_message(message.chat.id, "Ahora ingresa la segunda fecha (Ejemplo: marzo 2024)")
+    fecha_1 = convertir_a_fecha(texto_usuario)
+
+    if fecha_1 is None:
+        bot.send_message(
+            message.chat.id, 
+            "Fecha inválida. Usa el formato 'mes año'. Ejemplo: marzo 2023.\nEscribe 'Volver' para regresar."
+        )
+        pedir_fechas_comparacion(bot, message)  # Volver a pedir la primera fecha
+        return
+
+    bot.send_message(
+        message.chat.id, 
+        "Ahora ingresa la segunda fecha (Ejemplo: marzo 2024).\nEscribe 'Volver' para regresar al menú anterior."
+    )
     bot.register_next_step_handler(message, lambda m: obtener_fecha_comparacion_2(m, bot, fecha_1))
 
 def obtener_fecha_comparacion_2(message, bot, fecha_1):
     """Guarda la segunda fecha y realiza la comparación."""
-    fecha_2 = convertir_a_fecha(message.text.strip())
+    texto_usuario = message.text.strip().lower()
+
+    # Verificar si el usuario quiere volver
+    if texto_usuario == "volver":
+        pedir_fechas_comparacion(bot, message)  # Regresar a la selección de la primera fecha
+        return
+
+    fecha_2 = convertir_a_fecha(texto_usuario)
 
     if fecha_2 is None:
-        bot.send_message(message.chat.id, "Fecha inválida. Usa el formato 'mes año'. Ejemplo: marzo 2024.")
-        pedir_fechas_comparacion(bot, message)  # Volver a pedir la fecha
+        bot.send_message(
+            message.chat.id, 
+            "Fecha inválida. Usa el formato 'mes año'. Ejemplo: marzo 2024.\nEscribe 'Volver' para regresar."
+        )
+        pedir_fechas_comparacion(bot, message)  # Volver a pedir la primera fecha
         return
 
     df = read_data_ipi()
@@ -384,7 +461,7 @@ def realizar_comparacion(bot, message, df, fecha_1, fecha_2):
             message.chat.id, 
             "⚠️ No se encontraron datos para una o ambas fechas seleccionadas. Inténtalo nuevamente."
         )
-        send_menu_ipi_nacion(bot, message)
+        send_menu_ipi_nacion(bot, message)  # Regresar al menú principal
         return
 
     def calcular_variacion(val1, val2):
@@ -418,4 +495,4 @@ def realizar_comparacion(bot, message, df, fecha_1, fecha_2):
     mensaje += f"📌 Comparación completa realizada entre {get_fecha_en_espanol(fecha_1)} y {get_fecha_en_espanol(fecha_2)}."
 
     bot.send_message(message.chat.id, mensaje)
-    send_menu_ipi_nacion(bot, message)
+    send_menu_ipi_nacion(bot, message)  # Regresar al menú principal
