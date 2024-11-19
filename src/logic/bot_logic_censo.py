@@ -155,7 +155,9 @@ def mostrar_total_poblacion(df, bot, message):
         except locale.Error:
             bot.send_message(message.chat.id, "⚠️ No se pudo configurar el formato de números.")
 
-    total_poblacion = df['poblacion_viv_part_2022'].sum()
+    total_poblacion = df.sort_values('municipio')
+    total_poblacion = total_poblacion.drop_duplicates(subset='municipio')
+    total_poblacion = total_poblacion['poblacion_viv_part_2022'].sum()
     total_poblacion_modificada = locale.format_string('%d', total_poblacion, grouping=True)
 
     mensaje = (
