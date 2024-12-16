@@ -73,7 +73,7 @@ def send_menu_ipicorr(bot, message):
     for opcion in opciones:
         board.add(telebot.types.KeyboardButton(text=opcion))
 
-    bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?(Escribe Volver al menu principal para salir)", reply_markup=board)
+    bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?(Escribe 'Volver al menu principal' para salir)", reply_markup=board)
     bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
 def volver_al_menu(bot, message, menu_func):
@@ -110,7 +110,7 @@ def resp_ipicorr(message, bot):
             "- Interanual Minerales No Metálicos\n"
             "- Interanual Metales"
         ))
-        bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?(Escribe Volver al menu principal para salir)")
+        bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?(Escribe 'Volver al menu principal' para salir)")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
     elif user_input == "ultimo valor":
@@ -122,7 +122,7 @@ def resp_ipicorr(message, bot):
             message.chat.id, 
             f"El último valor de IPICORR es: {last_value:.1f}% correspondiente a {fecha_texto}"
         )
-        bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?(Escribe Volver al menu principal para salir)")
+        bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPICORR?(Escribe 'Volver al menu principal' para salir)")
         bot.register_next_step_handler(message, lambda m: resp_ipicorr(m, bot))
 
     elif user_input == "ver variaciones(categorias)":

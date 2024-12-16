@@ -124,11 +124,7 @@ def mostrar_datos_todos_municipios(bot, message, df, tipo):
 
     mensajes = []  # Lista para almacenar los mensajes generados
     for _, row in municipios.iterrows():
-<<<<<<< HEAD
         municipio = row['municipio']  # No se escapa el texto del municipio
-=======
-        municipio = escape_markdown(row['municipio'], version=2)
->>>>>>> afdf8d03a3dc11b713ccd97ef4d6955d3d873243
 
         if tipo == "poblacion":
             poblacion = locale.format_string('%d', row['poblacion_viv_part_2022'], grouping=True)
