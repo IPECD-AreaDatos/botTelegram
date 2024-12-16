@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import unicodedata
 from functools import partial
 import locale
+
 df_cache_departamentos = None
 df_cache_municipios = None
 last_load_time_departamentos = None
@@ -40,6 +41,17 @@ def read_data_censo_municipios():
     else:
         print("Usando datos desde caché...")
     return df_cache_municipios
+
+def escape_markdown(text, version=2):
+    """
+    Escapa caracteres reservados en Markdown o MarkdownV2.
+    """
+    if version == 2:
+        reserved_chars = r"_*[]()~`>#+-=|{}.!"
+    else:
+        reserved_chars = r"_*[]()"
+    return ''.join(f"\\{char}" if char in reserved_chars else char for char in text)
+
 
 # ------------------- Menú del Censo -------------------
 def send_menu_censo(bot, message):
@@ -99,7 +111,8 @@ import re
 def mostrar_datos_todos_municipios(bot, message, df, tipo):
     """Muestra los datos de todos los municipios ordenados alfabéticamente."""
     municipios = df.sort_values('municipio')
-
+    # Eliminar filas duplicadas en el DataFrame
+    municipios = municipios.drop_duplicates(subset='municipio')
     # Configurar el locale para el formato de números español
     try:
         locale.setlocale(locale.LC_ALL, 'es_ES.UTF-8')
@@ -111,14 +124,18 @@ def mostrar_datos_todos_municipios(bot, message, df, tipo):
 
     mensajes = []  # Lista para almacenar los mensajes generados
     for _, row in municipios.iterrows():
+<<<<<<< HEAD
         municipio = row['municipio']  # No se escapa el texto del municipio
+=======
+        municipio = escape_markdown(row['municipio'], version=2)
+>>>>>>> afdf8d03a3dc11b713ccd97ef4d6955d3d873243
 
         if tipo == "poblacion":
             poblacion = locale.format_string('%d', row['poblacion_viv_part_2022'], grouping=True)
             mensaje = f"🏘️ *{municipio}*: {poblacion} habitantes (2022).\n"
         elif tipo == "variacion":
-            variacion = locale.format_string('%d', row['var_abs_poblacion_2010_vs_2022'], grouping=True)
-            mensaje = f"📊 *{municipio}*: Variación de {variacion} habitantes entre 2010 y 2022.\n"
+            variacion = int(row.get('var_abs_poblacion_2010_vs_2022', 0))
+            mensaje = f"📊 *{municipio}*: Variación de {variacion} habitantes entre 2010 y 2022\\.\n"
         elif tipo == "peso":
             peso_relativo = row['peso_relativo_2022']
             mensaje = f"⚖️ *{municipio}*: {peso_relativo:.2f}% del total de la población.\n"
@@ -138,6 +155,7 @@ def mostrar_datos_todos_municipios(bot, message, df, tipo):
 
     send_menu_censo(bot, message)
 
+
 # ------------------- Mostrar Población Total -------------------
 def mostrar_total_poblacion(df, bot, message):
     """Muestra la población total en todos los municipios con formato adecuado."""
@@ -149,7 +167,9 @@ def mostrar_total_poblacion(df, bot, message):
         except locale.Error:
             bot.send_message(message.chat.id, "⚠️ No se pudo configurar el formato de números.")
 
-    total_poblacion = df['poblacion_viv_part_2022'].sum()
+    total_poblacion = df.sort_values('municipio')
+    total_poblacion = total_poblacion.drop_duplicates(subset='municipio')
+    total_poblacion = total_poblacion['poblacion_viv_part_2022'].sum()
     total_poblacion_modificada = locale.format_string('%d', total_poblacion, grouping=True)
 
     mensaje = (
