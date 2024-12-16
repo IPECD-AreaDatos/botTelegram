@@ -94,6 +94,8 @@ def resp_censo_departamento(message, bot):
         send_menu_censo(bot, message)
 
 # ------------------- Mostrar Datos de Todos los Municipios -------------------
+import re
+
 def mostrar_datos_todos_municipios(bot, message, df, tipo):
     """Muestra los datos de todos los municipios ordenados alfabéticamente."""
     municipios = df.sort_values('municipio')
@@ -109,7 +111,7 @@ def mostrar_datos_todos_municipios(bot, message, df, tipo):
 
     mensajes = []  # Lista para almacenar los mensajes generados
     for _, row in municipios.iterrows():
-        municipio = row['municipio']
+        municipio = row['municipio']  # No se escapa el texto del municipio
 
         if tipo == "poblacion":
             poblacion = locale.format_string('%d', row['poblacion_viv_part_2022'], grouping=True)
@@ -121,12 +123,18 @@ def mostrar_datos_todos_municipios(bot, message, df, tipo):
             peso_relativo = row['peso_relativo_2022']
             mensaje = f"⚖️ *{municipio}*: {peso_relativo:.2f}% del total de la población.\n"
 
-        mensajes.append(mensaje)
+        # Evitar duplicados
+        if mensaje not in mensajes:
+            mensajes.append(mensaje)
 
     # Enviar los mensajes en bloques para evitar exceder el límite de 4096 caracteres
     mensaje_completo = "".join(mensajes)
     for i in range(0, len(mensaje_completo), 4096):
-        bot.send_message(message.chat.id, mensaje_completo[i:i + 4096], parse_mode="Markdown")
+        try:
+            bot.send_message(message.chat.id, mensaje_completo[i:i + 4096], parse_mode="Markdown")
+        except telebot.apihelper.ApiTelegramException as e:
+            bot.send_message(message.chat.id, "⚠️ Error al enviar el mensaje. Verifica el formato.")
+            print(f"Error al enviar mensaje: {e}")
 
     send_menu_censo(bot, message)
 

@@ -86,7 +86,7 @@ def send_menu_ipi_nacion(bot, message):
     for opcion in opciones:
         board.add(telebot.types.KeyboardButton(text=opcion))
 
-    bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPI Nación?", reply_markup=board)
+    bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPI Nación?(Escribe Volver al menu principal para salir)", reply_markup=board)
     bot.register_next_step_handler(message, lambda m: resp_ipi_nacion(m, bot))
 
 # ------------------- Respuestas del Bot -------------------
@@ -118,6 +118,7 @@ def resp_ipi_nacion(message, bot):
                 "aportando una visión detallada del estado de la industria nacional."
             )
         )
+        bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPI Nacion?(Escribe Volver al menu principal para salir)")
         bot.register_next_step_handler(message, lambda m: resp_ipi_nacion(m, bot))
     elif user_input == "ultimo valor":
         ultimo_valor_ipi(df, bot, message)
@@ -159,9 +160,10 @@ def ultimo_valor_ipi(df, bot, message):
         f"• ⛏️ Minerales no metálicos {ultimo_registro['anual_var_mensual_min_no_metalicos']:.1f}%\n"
         f"• 🔧 Metales {ultimo_registro['anual_var_mensual_min_metales']:.1f}%"
     )
+    bot.send_message(message.chat.id, "¿Qué tema quieres saber sobre IPI Nacion?(Escribe Volver al menu principal para salir)")
     bot.send_message(message.chat.id, mensaje)
     send_menu_ipi_nacion(bot, message)
-# ------------------- Generación de Gráficos -------------------
+    
 # ------------------- Generación de Gráficos -------------------
 def pedir_sector_ipi(bot, message):
     """Solicita al usuario que seleccione el sector del IPI para graficar."""
